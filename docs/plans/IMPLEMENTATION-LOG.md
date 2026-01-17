@@ -21,7 +21,7 @@
 | 4 - Frontend | Task 12: Set Up shadcn/ui | ✅ Done | `db8dc85` |
 | 5 - UI Pages | Task 13: Create Layout and Navigation | ✅ Done | `84cb21a` |
 | 5 - UI Pages | Task 14: Build Sources Page | ✅ Done | `b0f4432` |
-| 5 - UI Pages | Task 15: Build Categories Page | ✅ Done | `6f472ef` |
+| 5 - UI Pages | Task 15: Build Categories Page | ✅ Done | `5b9430c` |
 | 5 - UI Pages | Task 16: Build Import Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 17: Build Transactions Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 18: Build Rules Page | ⏳ Pending | - |
