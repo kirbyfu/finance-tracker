@@ -58,3 +58,26 @@
 
 ### Issues encountered
 - None. Implementation followed the plan directly.
+
+## 2026-01-18 - Task 18: Build Rules Page
+
+### What was accomplished
+- Created the Rules page component with full CRUD functionality for categorization rules
+- Priority-ordered display with drag-and-drop reordering capability
+- Each rule shows: priority number, regex pattern, assigned category (with color), and source filter
+- Pattern testing dialog that shows matching transactions from the database
+- "Re-categorize All" button to apply rules to existing transactions
+- Create/Edit dialog with:
+  - Regex pattern input with helper text
+  - Category selector with color indicators
+  - Optional source filter dropdown
+  - Test button to preview matches before saving
+- Visual feedback during drag operations
+- Integrated with tRPC rules router for list, create, update, delete, reorder, and test operations
+
+### Files created/modified
+- `packages/web/src/pages/Rules.tsx` - New Rules page component (298 lines)
+- `packages/web/src/App.tsx` - Added Rules import and removed placeholder function
+
+### Issues encountered
+- None. Implementation followed the plan directly.

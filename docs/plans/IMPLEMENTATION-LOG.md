@@ -24,7 +24,7 @@
 | 5 - UI Pages | Task 15: Build Categories Page | ✅ Done | `5b9430c` |
 | 5 - UI Pages | Task 16: Build Import Page | ✅ Done | `d007934` |
 | 5 - UI Pages | Task 17: Build Transactions Page | ✅ Done | `0b0ff15` |
-| 5 - UI Pages | Task 18: Build Rules Page | ⏳ Pending | - |
+| 5 - UI Pages | Task 18: Build Rules Page | ✅ Done | `pending` |
 | 5 - UI Pages | Task 19: Build Reports Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 20: Build Dashboard Page | ⏳ Pending | - |
 | Final | Task 21: Add vitest config | ⏳ Pending | - |
@@ -33,10 +33,10 @@
 
 ## Next Task
 
-**Task 18: Build Rules Page**
+**Task 19: Build Reports Page**
 
 Files to create:
-- `packages/web/src/pages/Rules.tsx`
+- `packages/web/src/pages/Reports.tsx`
 - Modify `packages/web/src/App.tsx`
 
 ## Environment Notes
@@ -87,4 +87,4 @@ cd "D:/Code/finance-tracker/packages/server" && node -e "const {execSync} = requ
 Output: <promise>COMPLETE</promise>
 
 ---
-*Last updated: 2026-01-18 after completing Task 17*
+*Last updated: 2026-01-18 after completing Task 18*

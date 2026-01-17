@@ -4,6 +4,7 @@ import { Sources } from '@/pages/Sources';
 import { Categories } from '@/pages/Categories';
 import { Import } from '@/pages/Import';
 import { Transactions } from '@/pages/Transactions';
+import { Rules } from '@/pages/Rules';
 
 // Placeholder pages
 function Dashboard() {
@@ -11,9 +12,6 @@ function Dashboard() {
 }
 function Reports() {
   return <h1 className="text-2xl font-bold">Reports</h1>;
-}
-function Rules() {
-  return <h1 className="text-2xl font-bold">Rules</h1>;
 }
 
 function App() {
