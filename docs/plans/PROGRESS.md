@@ -139,3 +139,16 @@
 
 ### Issues encountered
 - None. Implementation followed the plan directly.
+
+## 2026-01-18 - Task 21: Add vitest config
+
+### What was accomplished
+- Created vitest configuration file for the server package
+- Configured vitest with globals enabled and node environment
+- Verified tests run successfully with the new config (23/24 tests pass)
+
+### Files created/modified
+- `packages/server/vitest.config.ts` - New vitest configuration file
+
+### Issues encountered
+- One pre-existing test failure in sources.test.ts due to foreign key constraint (transactions reference sources in the database). This is a data cleanup issue in the test, not related to the vitest config itself.

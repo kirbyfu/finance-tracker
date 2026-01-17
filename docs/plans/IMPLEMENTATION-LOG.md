@@ -27,16 +27,15 @@
 | 5 - UI Pages | Task 18: Build Rules Page | ✅ Done | `9e62d8f` |
 | 5 - UI Pages | Task 19: Build Reports Page | ✅ Done | `357050e` |
 | 5 - UI Pages | Task 20: Build Dashboard Page | ✅ Done | `a386d08` |
-| Final | Task 21: Add vitest config | ⏳ Pending | - |
+| Final | Task 21: Add vitest config | ✅ Done | `fe42ffc` |
 | Final | Task 22: Final integration test | ⏳ Pending | - |
 | Final | Task 23: Commit and tag release | ⏳ Pending | - |
 
 ## Next Task
 
-**Task 21: Add vitest config**
+**Task 22: Final integration test**
 
-Files to create:
-- `packages/server/vitest.config.ts`
+Full flow verification needed.
 
 ## Environment Notes
 
@@ -86,4 +85,4 @@ cd "D:/Code/finance-tracker/packages/server" && node -e "const {execSync} = requ
 Output: <promise>COMPLETE</promise>
 
 ---
-*Last updated: 2026-01-18 after completing Task 20*
+*Last updated: 2026-01-18 after completing Task 21*
