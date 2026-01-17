@@ -13,13 +13,13 @@
 | 2 - Database | Task 4: Set Up Drizzle Schema | ✅ Done | `c4c0eb3` |
 | 3 - tRPC | Task 5: Create tRPC Server Infrastructure | ✅ Done | `dd97d94` |
 | 3 - tRPC | Task 6: Create Sources Router | ✅ Done | `9da6554` |
-| 3 - tRPC | Task 7: Create Categories Router | ⏳ Pending | - |
-| 3 - tRPC | Task 8: Create Rules Router | ⏳ Pending | - |
-| 3 - tRPC | Task 9: Create Transactions Router | ⏳ Pending | - |
-| 3 - tRPC | Task 10: Create Reports Router | ⏳ Pending | - |
-| 4 - Frontend | Task 11: Set Up tRPC Client | ⏳ Pending | - |
-| 4 - Frontend | Task 12: Set Up shadcn/ui | ⏳ Pending | - |
-| 5 - UI Pages | Task 13: Create Layout and Navigation | ⏳ Pending | - |
+| 3 - tRPC | Task 7: Create Categories Router | ✅ Done | `a4096c5` |
+| 3 - tRPC | Task 8: Create Rules Router | ✅ Done | `ede27ff` |
+| 3 - tRPC | Task 9: Create Transactions Router | ✅ Done | `6d165a0` |
+| 3 - tRPC | Task 10: Create Reports Router | ✅ Done | `0652e3b` |
+| 4 - Frontend | Task 11: Set Up tRPC Client | ✅ Done | `eb23695` |
+| 4 - Frontend | Task 12: Set Up shadcn/ui | ✅ Done | `db8dc85` |
+| 5 - UI Pages | Task 13: Create Layout and Navigation | ✅ Done | `84cb21a` |
 | 5 - UI Pages | Task 14: Build Sources Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 15: Build Categories Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 16: Build Import Page | ⏳ Pending | - |
@@ -33,12 +33,11 @@
 
 ## Next Task
 
-**Task 7: Create Categories Router**
+**Task 14: Build Sources Page**
 
 Files to create:
-- `packages/server/src/routers/categories.ts`
-- `packages/server/src/routers/categories.test.ts`
-- Modify `packages/server/src/routers/index.ts`
+- `packages/web/src/pages/Sources.tsx`
+- Modify `packages/web/src/App.tsx`
 
 ## Environment Notes
 
@@ -88,4 +87,4 @@ cd "D:/Code/finance-tracker/packages/server" && node -e "const {execSync} = requ
 Output: <promise>COMPLETE</promise>
 
 ---
-*Last updated: 2026-01-17 after completing Tasks 1-6*
+*Last updated: 2026-01-18 after completing Task 13*
