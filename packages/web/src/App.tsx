@@ -1,17 +1,44 @@
-import { trpc } from './lib/trpc';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Layout } from '@/components/Layout';
+
+// Placeholder pages
+function Dashboard() {
+  return <h1 className="text-2xl font-bold">Dashboard</h1>;
+}
+function Transactions() {
+  return <h1 className="text-2xl font-bold">Transactions</h1>;
+}
+function Import() {
+  return <h1 className="text-2xl font-bold">Import</h1>;
+}
+function Reports() {
+  return <h1 className="text-2xl font-bold">Reports</h1>;
+}
+function Categories() {
+  return <h1 className="text-2xl font-bold">Categories</h1>;
+}
+function Rules() {
+  return <h1 className="text-2xl font-bold">Rules</h1>;
+}
+function Sources() {
+  return <h1 className="text-2xl font-bold">Sources</h1>;
+}
 
 function App() {
-  const { data: sources, isLoading } = trpc.sources.list.useQuery();
-
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-2xl font-bold mb-4">Finance Tracker</h1>
-      {isLoading ? (
-        <p>Loading...</p>
-      ) : (
-        <p>Sources: {sources?.length ?? 0}</p>
-      )}
-    </div>
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/import" element={<Import />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/rules" element={<Rules />} />
+          <Route path="/sources" element={<Sources />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   );
 }
 
