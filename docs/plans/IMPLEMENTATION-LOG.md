@@ -22,7 +22,7 @@
 | 5 - UI Pages | Task 13: Create Layout and Navigation | ✅ Done | `84cb21a` |
 | 5 - UI Pages | Task 14: Build Sources Page | ✅ Done | `b0f4432` |
 | 5 - UI Pages | Task 15: Build Categories Page | ✅ Done | `5b9430c` |
-| 5 - UI Pages | Task 16: Build Import Page | ⏳ Pending | - |
+| 5 - UI Pages | Task 16: Build Import Page | ✅ Done | `d007934` |
 | 5 - UI Pages | Task 17: Build Transactions Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 18: Build Rules Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 19: Build Reports Page | ⏳ Pending | - |
@@ -33,10 +33,10 @@
 
 ## Next Task
 
-**Task 16: Build Import Page**
+**Task 17: Build Transactions Page**
 
 Files to create:
-- `packages/web/src/pages/Import.tsx`
+- `packages/web/src/pages/Transactions.tsx`
 - Modify `packages/web/src/App.tsx`
 
 ## Environment Notes
@@ -87,4 +87,4 @@ cd "D:/Code/finance-tracker/packages/server" && node -e "const {execSync} = requ
 Output: <promise>COMPLETE</promise>
 
 ---
-*Last updated: 2026-01-18 after completing Task 15*
+*Last updated: 2026-01-18 after completing Task 16*
