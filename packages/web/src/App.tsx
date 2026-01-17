@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Sources } from '@/pages/Sources';
 import { Categories } from '@/pages/Categories';
+import { Import } from '@/pages/Import';
 
 // Placeholder pages
 function Dashboard() {
@@ -9,9 +10,6 @@ function Dashboard() {
 }
 function Transactions() {
   return <h1 className="text-2xl font-bold">Transactions</h1>;
-}
-function Import() {
-  return <h1 className="text-2xl font-bold">Import</h1>;
 }
 function Reports() {
   return <h1 className="text-2xl font-bold">Reports</h1>;
