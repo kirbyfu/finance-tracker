@@ -23,7 +23,7 @@
 | 5 - UI Pages | Task 14: Build Sources Page | ✅ Done | `b0f4432` |
 | 5 - UI Pages | Task 15: Build Categories Page | ✅ Done | `5b9430c` |
 | 5 - UI Pages | Task 16: Build Import Page | ✅ Done | `d007934` |
-| 5 - UI Pages | Task 17: Build Transactions Page | ✅ Done | `pending` |
+| 5 - UI Pages | Task 17: Build Transactions Page | ✅ Done | `0b0ff15` |
 | 5 - UI Pages | Task 18: Build Rules Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 19: Build Reports Page | ⏳ Pending | - |
 | 5 - UI Pages | Task 20: Build Dashboard Page | ⏳ Pending | - |
