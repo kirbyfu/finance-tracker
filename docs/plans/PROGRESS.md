@@ -81,3 +81,32 @@
 
 ### Issues encountered
 - None. Implementation followed the plan directly.
+
+## 2026-01-18 - Task 19: Build Reports Page
+
+### What was accomplished
+- Created the Reports page component with comprehensive financial reporting functionality
+- Tab navigation between Monthly and Annual views
+- Month/year selector dropdowns for date selection
+- Summary cards showing Total Expenses, Total Income, and Net
+- Charts:
+  - Pie chart showing expense breakdown by category with category colors
+  - Bar chart for 6-month comparison (Monthly view) or 3-year comparison (Annual view)
+  - Income vs Expenses comparison visualization
+- Detailed breakdown tables:
+  - Category name with color indicator
+  - Amount (color-coded: red for expenses, green for income)
+  - Percentage of total expenses
+  - Monthly average (Annual view only)
+- Transfer categories correctly excluded from expense totals
+- Handles empty states gracefully with placeholder messages
+
+### Files created/modified
+- `packages/web/src/pages/Reports.tsx` - New Reports page component with Recharts integration
+- `packages/web/src/components/ui/tabs.tsx` - Added Tabs component from shadcn/ui
+- `packages/web/src/App.tsx` - Added Reports import and removed placeholder function
+- `packages/web/package.json` - Added @radix-ui/react-tabs dependency
+
+### Issues encountered
+- pnpm not in PATH on Windows - used corepack pnpm workaround for dependency installation
+- shadcn CLI add command failed - manually created tabs.tsx component and installed dependency separately
