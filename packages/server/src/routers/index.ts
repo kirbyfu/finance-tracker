@@ -1,7 +1,8 @@
 import { router } from '../trpc';
+import { sourcesRouter } from './sources';
 
 export const appRouter = router({
-  // Routers will be added here
+  sources: sourcesRouter,
 });
 
 export type AppRouter = typeof appRouter;
