@@ -5,7 +5,8 @@ import { sql } from 'drizzle-orm';
 
 describe('categories router', () => {
   beforeEach(async () => {
-    // Clear rules first due to FK constraint
+    // Clear in FK-safe order: transactions -> rules -> categories
+    await db.run(sql`DELETE FROM transactions`);
     await db.run(sql`DELETE FROM rules`);
     await db.run(sql`DELETE FROM categories`);
   });

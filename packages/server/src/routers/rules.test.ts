@@ -7,6 +7,8 @@ describe('rules router', () => {
   let categoryId: number;
 
   beforeEach(async () => {
+    // Clear in FK-safe order: transactions -> rules -> categories
+    await db.run(sql`DELETE FROM transactions`);
     await db.run(sql`DELETE FROM rules`);
     await db.run(sql`DELETE FROM categories`);
     const [cat] = await db.insert(categories).values({ name: 'Test Category' }).returning();

@@ -5,6 +5,10 @@ import { sql } from 'drizzle-orm';
 
 describe('sources router', () => {
   beforeEach(async () => {
+    // Clear in FK-safe order: transactions -> rules -> categories -> sources
+    await db.run(sql`DELETE FROM transactions`);
+    await db.run(sql`DELETE FROM rules`);
+    await db.run(sql`DELETE FROM categories`);
     await db.run(sql`DELETE FROM sources`);
   });
 
