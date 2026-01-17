@@ -9,14 +9,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@tanstack/react-query": "^5.62.0",
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
-    "@tanstack/react-query": "^5.62.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.0",
     "recharts": "^2.15.0",
-    "server": "workspace:*"
+    "server": "workspace:*",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
