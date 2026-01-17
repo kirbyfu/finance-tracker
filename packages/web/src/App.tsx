@@ -6,11 +6,7 @@ import { Import } from '@/pages/Import';
 import { Transactions } from '@/pages/Transactions';
 import { Rules } from '@/pages/Rules';
 import { Reports } from '@/pages/Reports';
-
-// Placeholder pages
-function Dashboard() {
-  return <h1 className="text-2xl font-bold">Dashboard</h1>;
-}
+import { Dashboard } from '@/pages/Dashboard';
 
 function App() {
   return (

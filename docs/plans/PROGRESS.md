@@ -110,3 +110,32 @@
 ### Issues encountered
 - pnpm not in PATH on Windows - used corepack pnpm workaround for dependency installation
 - shadcn CLI add command failed - manually created tabs.tsx component and installed dependency separately
+
+## 2026-01-18 - Task 20: Build Dashboard Page
+
+### What was accomplished
+- Created the Dashboard page component as the main landing page for the application
+- Quick stats cards showing:
+  - Total Expenses (current month) with TrendingDown icon
+  - Total Income (current month) with TrendingUp icon
+  - Net (income - expenses) with color-coded display
+  - Uncategorized count with warning style and "Review now" link
+- Pie chart showing expense breakdown by category for the current month
+  - Uses category colors from the database
+  - Shows top 8 categories with legend
+  - Percentage labels on larger slices
+- Recent Transactions table (last 10 transactions)
+  - Shows date, description (with category color indicator), and amount
+  - Links to full transactions page
+- Top Spending Categories bar display
+  - Visual progress bars showing proportion of each category
+  - Top 5 categories with percentages and amounts
+- Navigation links to Reports and Transactions pages
+- Updated App.tsx to import and use the new Dashboard component
+
+### Files created/modified
+- `packages/web/src/pages/Dashboard.tsx` - New Dashboard page component (279 lines)
+- `packages/web/src/App.tsx` - Added Dashboard import, removed placeholder function
+
+### Issues encountered
+- None. Implementation followed the plan directly.
