@@ -84,5 +84,8 @@ cd "D:/Code/finance-tracker/packages/server" && node -e "const {execSync} = requ
 4. Continue from Task 7 in batches of 3
 5. Update this log after each batch
 
+## When all tasks are done
+Output: <promise>COMPLETE</promise>
+
 ---
 *Last updated: 2026-01-17 after completing Tasks 1-6*
