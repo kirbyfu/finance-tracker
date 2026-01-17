@@ -26,7 +26,7 @@
 | 5 - UI Pages | Task 17: Build Transactions Page | ✅ Done | `0b0ff15` |
 | 5 - UI Pages | Task 18: Build Rules Page | ✅ Done | `9e62d8f` |
 | 5 - UI Pages | Task 19: Build Reports Page | ✅ Done | `357050e` |
-| 5 - UI Pages | Task 20: Build Dashboard Page | ✅ Done | `pending` |
+| 5 - UI Pages | Task 20: Build Dashboard Page | ✅ Done | `a386d08` |
 | Final | Task 21: Add vitest config | ⏳ Pending | - |
 | Final | Task 22: Final integration test | ⏳ Pending | - |
 | Final | Task 23: Commit and tag release | ⏳ Pending | - |
