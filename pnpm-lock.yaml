@@ -81,6 +81,9 @@ importers:
       recharts:
         specifier: ^2.15.0
         version: 2.15.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      server:
+        specifier: workspace:*
+        version: link:../server
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
