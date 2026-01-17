@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
+import { Sources } from '@/pages/Sources';
 
 // Placeholder pages
 function Dashboard() {
@@ -19,9 +20,6 @@ function Categories() {
 }
 function Rules() {
   return <h1 className="text-2xl font-bold">Rules</h1>;
-}
-function Sources() {
-  return <h1 className="text-2xl font-bold">Sources</h1>;
 }
 
 function App() {
