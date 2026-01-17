@@ -152,3 +152,53 @@
 
 ### Issues encountered
 - One pre-existing test failure in sources.test.ts due to foreign key constraint (transactions reference sources in the database). This is a data cleanup issue in the test, not related to the vitest config itself.
+
+## 2026-01-18 - Task 22: Final integration test
+
+### What was accomplished
+- Fixed test isolation issues that were causing FK constraint failures
+- Updated vitest.config.ts to run tests sequentially using single fork (prevents race conditions)
+- Updated test cleanup in categories.test.ts, rules.test.ts, and sources.test.ts to clear tables in FK-safe order
+- All 24 tests now pass consistently
+
+### Files created/modified
+- `packages/server/vitest.config.ts` - Added pool configuration for sequential execution
+- `packages/server/src/routers/categories.test.ts` - Fixed test cleanup order
+- `packages/server/src/routers/rules.test.ts` - Fixed test cleanup order
+- `packages/server/src/routers/sources.test.ts` - Fixed test cleanup order
+
+### Issues encountered
+- None. Identified root cause of FK constraint failures and implemented proper fixes.
+
+## 2026-01-18 - Task 23: Commit and tag release
+
+### What was accomplished
+- Committed test isolation fixes (commit 8be0a7d)
+- Updated implementation log with Task 22 commit hash
+- Marked all 23 tasks as complete
+- Tagged release v0.1.0
+- Finance Tracker MVP is complete!
+
+### Files created/modified
+- `docs/plans/IMPLEMENTATION-LOG.md` - Updated Task 22 and 23 status to Done
+- `docs/plans/PROGRESS.md` - Added entries for Task 22 and 23
+
+### Issues encountered
+- None. Release tagging completed successfully.
+
+---
+
+# Project Complete
+
+All 23 tasks have been implemented. The Finance Tracker MVP includes:
+- Monorepo with pnpm workspaces and turborepo
+- SQLite database with Drizzle ORM
+- tRPC API with routers for sources, categories, rules, transactions, and reports
+- React frontend with React Router, TanStack Query, and shadcn/ui
+- Full CRUD for sources, categories, and rules
+- CSV import with configurable column mapping and hash-based deduplication
+- Regex-based auto-categorization with priority ordering
+- Monthly and annual expense reports with charts
+- Dashboard with overview stats and recent transactions
+
+Tagged as v0.1.0.

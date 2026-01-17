@@ -28,14 +28,12 @@
 | 5 - UI Pages | Task 19: Build Reports Page | ✅ Done | `357050e` |
 | 5 - UI Pages | Task 20: Build Dashboard Page | ✅ Done | `a386d08` |
 | Final | Task 21: Add vitest config | ✅ Done | `fe42ffc` |
-| Final | Task 22: Final integration test | ⏳ Pending | - |
-| Final | Task 23: Commit and tag release | ⏳ Pending | - |
+| Final | Task 22: Final integration test | ✅ Done | `8be0a7d` |
+| Final | Task 23: Commit and tag release | ✅ Done | `v0.1.0` |
 
-## Next Task
+## All Tasks Complete
 
-**Task 22: Final integration test**
-
-Full flow verification needed.
+All 23 tasks have been completed. The project is tagged as v0.1.0.
 
 ## Environment Notes
 
@@ -85,4 +83,4 @@ cd "D:/Code/finance-tracker/packages/server" && node -e "const {execSync} = requ
 Output: <promise>COMPLETE</promise>
 
 ---
-*Last updated: 2026-01-18 after completing Task 21*
+*Last updated: 2026-01-18 after completing Task 23 - all tasks done, v0.1.0 released*
