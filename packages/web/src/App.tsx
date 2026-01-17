@@ -3,13 +3,11 @@ import { Layout } from '@/components/Layout';
 import { Sources } from '@/pages/Sources';
 import { Categories } from '@/pages/Categories';
 import { Import } from '@/pages/Import';
+import { Transactions } from '@/pages/Transactions';
 
 // Placeholder pages
 function Dashboard() {
   return <h1 className="text-2xl font-bold">Dashboard</h1>;
-}
-function Transactions() {
-  return <h1 className="text-2xl font-bold">Transactions</h1>;
 }
 function Reports() {
   return <h1 className="text-2xl font-bold">Reports</h1>;
