@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Sources } from '@/pages/Sources';
+import { Categories } from '@/pages/Categories';
 
 // Placeholder pages
 function Dashboard() {
@@ -14,9 +15,6 @@ function Import() {
 }
 function Reports() {
   return <h1 className="text-2xl font-bold">Reports</h1>;
-}
-function Categories() {
-  return <h1 className="text-2xl font-bold">Categories</h1>;
 }
 function Rules() {
   return <h1 className="text-2xl font-bold">Rules</h1>;
