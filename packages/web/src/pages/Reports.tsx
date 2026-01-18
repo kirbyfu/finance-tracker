@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,8 +55,26 @@ function formatCurrency(amount: number): string {
 export function Reports() {
   const currentDate = new Date();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [year, setYear] = useState(currentDate.getFullYear());
-  const [month, setMonth] = useState(currentDate.getMonth() + 1);
+
+  // Get year/month from URL, default to current date
+  const yearParam = searchParams.get('year');
+  const monthParam = searchParams.get('month');
+  const year = yearParam ? parseInt(yearParam, 10) : currentDate.getFullYear();
+  const month = monthParam ? parseInt(monthParam, 10) : currentDate.getMonth() + 1;
+
+  const setYear = (newYear: number) => {
+    setSearchParams((prev) => {
+      prev.set('year', newYear.toString());
+      return prev;
+    });
+  };
+
+  const setMonth = (newMonth: number) => {
+    setSearchParams((prev) => {
+      prev.set('month', newMonth.toString());
+      return prev;
+    });
+  };
 
   // Get tab from URL, default to 'monthly'
   const view = searchParams.get('view') === 'annual' ? 'annual' : 'monthly';

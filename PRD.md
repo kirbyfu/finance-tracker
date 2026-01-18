@@ -18,7 +18,7 @@ Add a button to jump directly to page 1 (first page) in the pagination controls.
 ### Task 4: Persist Monthly/Annual tab selection in URL ✅
 Use `useSearchParams` to read/write `view` param (values: `monthly`, `annual`). Initialize tab from URL, default to `monthly`. Update URL when tab changes.
 
-### Task 5: Persist year and month in URL params
+### Task 5: Persist year and month in URL params ✅
 Add `year` and `month` URL params. Initialize state from URL params (defaulting to current date). Update URL when year/month changes. Ensure URL stays in sync with selectors.
 
 ### Task 6: Replace month dropdown with 3x4 grid picker
