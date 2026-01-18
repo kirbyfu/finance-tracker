@@ -117,6 +117,41 @@ export function Transactions() {
     offset: page * PAGE_SIZE,
   });
 
+  const categoryMap = new Map(categories?.map(c => [c.id, c.name]) || []);
+
+  const hasActiveFilters = filters.categoryId || filters.uncategorizedOnly || filters.startDate || filters.endDate;
+
+  const getFilterDescription = () => {
+    const parts: string[] = [];
+
+    if (filters.uncategorizedOnly) {
+      parts.push('Uncategorized');
+    } else if (filters.categoryId) {
+      parts.push(categoryMap.get(filters.categoryId) || `Category ${filters.categoryId}`);
+    }
+
+    if (filters.startDate && filters.endDate) {
+      const start = new Date(filters.startDate).toLocaleDateString();
+      const end = new Date(filters.endDate).toLocaleDateString();
+      parts.push(`${start} - ${end}`);
+    } else if (filters.startDate) {
+      parts.push(`From ${new Date(filters.startDate).toLocaleDateString()}`);
+    } else if (filters.endDate) {
+      parts.push(`Until ${new Date(filters.endDate).toLocaleDateString()}`);
+    }
+
+    return parts.join(' | ');
+  };
+
+  const clearUrlFilters = () => {
+    const newParams = new URLSearchParams();
+    // Keep sort params if present
+    if (filters.sort !== 'date') newParams.set('sort', filters.sort);
+    if (filters.order !== 'desc') newParams.set('order', filters.order);
+    setPage(0);
+    setSearchParams(newParams);
+  };
+
   const updateMutation = trpc.transactions.update.useMutation({
     onSuccess: () => {
       utils.transactions.list.invalidate();
@@ -201,6 +236,20 @@ export function Transactions() {
           <CardTitle className="text-lg">Filters</CardTitle>
         </CardHeader>
         <CardContent>
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg mb-4">
+              <span className="text-sm font-medium">Showing:</span>
+              <span className="text-sm">{getFilterDescription()}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearUrlFilters}
+                className="ml-auto"
+              >
+                Clear filters
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <Label>Source</Label>
