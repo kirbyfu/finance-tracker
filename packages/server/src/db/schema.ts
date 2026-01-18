@@ -5,6 +5,7 @@ export const sources = sqliteTable('sources', {
   name: text('name').notNull(),
   type: text('type', { enum: ['bank', 'credit_card'] }).notNull(),
   columnMapping: text('column_mapping').notNull(), // JSON string
+  hasHeaderRow: integer('has_header_row', { mode: 'boolean' }).notNull().default(true),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
