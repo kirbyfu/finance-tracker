@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "typecheck": "turbo typecheck",
     "db:push": "pnpm --filter server db:push",
     "db:studio": "pnpm --filter server db:studio"
   },
