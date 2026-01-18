@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -66,6 +67,35 @@ export function Reports() {
     map.set(null, '#6b7280'); // Uncategorized
     return map;
   }, [categories]);
+
+  const buildTransactionUrl = (categoryId: number | null, isMonthly: boolean) => {
+    const params = new URLSearchParams();
+
+    if (categoryId === null) {
+      params.set('categoryId', 'uncategorized');
+    } else {
+      params.set('categoryId', categoryId.toString());
+    }
+
+    if (isMonthly) {
+      // Monthly view: specific month
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      params.set('startDate', startDate);
+      params.set('endDate', endDate);
+    } else {
+      // Annual view: full year
+      params.set('startDate', `${year}-01-01`);
+      params.set('endDate', `${year}-12-31`);
+    }
+
+    // Default sort: amount ascending (biggest expenses first)
+    params.set('sort', 'amount');
+    params.set('order', 'asc');
+
+    return `/transactions?${params.toString()}`;
+  };
 
   // Monthly report
   const { data: monthlyData, isLoading: monthlyLoading } = trpc.reports.monthly.useQuery({
@@ -365,21 +395,37 @@ export function Reports() {
                         ? ((Math.abs(item.total) / totalExpenses) * 100).toFixed(1)
                         : '0';
                       return (
-                        <TableRow key={item.categoryId ?? 'uncategorized'}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
+                        <TableRow
+                          key={item.categoryId ?? 'uncategorized'}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, true)}
+                              className="flex items-center gap-2 p-4 w-full"
+                            >
                               <div
-                                className="w-3 h-3 rounded-full"
+                                className="w-3 h-3 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: categoryColorMap.get(item.categoryId) || '#6b7280' }}
                               />
-                              {item.categoryName}
-                            </div>
+                              <span className="font-medium">{item.categoryName}</span>
+                            </Link>
                           </TableCell>
-                          <TableCell className={`text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(item.total)}
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, true)}
+                              className={`block p-4 text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
+                            >
+                              {formatCurrency(item.total)}
+                            </Link>
                           </TableCell>
-                          <TableCell className="text-right text-muted-foreground">
-                            {item.total < 0 ? `${percentage}%` : '-'}
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, true)}
+                              className="block p-4 text-right text-muted-foreground"
+                            >
+                              {item.total < 0 ? `${percentage}%` : '-'}
+                            </Link>
                           </TableCell>
                         </TableRow>
                       );
@@ -535,24 +581,45 @@ export function Reports() {
                         : '0';
                       const monthlyAvg = item.total / 12;
                       return (
-                        <TableRow key={item.categoryId ?? 'uncategorized'}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
+                        <TableRow
+                          key={item.categoryId ?? 'uncategorized'}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, false)}
+                              className="flex items-center gap-2 p-4 w-full"
+                            >
                               <div
-                                className="w-3 h-3 rounded-full"
+                                className="w-3 h-3 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: categoryColorMap.get(item.categoryId) || '#6b7280' }}
                               />
-                              {item.categoryName}
-                            </div>
+                              <span className="font-medium">{item.categoryName}</span>
+                            </Link>
                           </TableCell>
-                          <TableCell className={`text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(item.total)}
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, false)}
+                              className={`block p-4 text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
+                            >
+                              {formatCurrency(item.total)}
+                            </Link>
                           </TableCell>
-                          <TableCell className={`text-right ${monthlyAvg < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(monthlyAvg)}
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, false)}
+                              className={`block p-4 text-right ${monthlyAvg < 0 ? 'text-red-600' : 'text-green-600'}`}
+                            >
+                              {formatCurrency(monthlyAvg)}
+                            </Link>
                           </TableCell>
-                          <TableCell className="text-right text-muted-foreground">
-                            {item.total < 0 ? `${percentage}%` : '-'}
+                          <TableCell className="p-0">
+                            <Link
+                              to={buildTransactionUrl(item.categoryId, false)}
+                              className="block p-4 text-right text-muted-foreground"
+                            >
+                              {item.total < 0 ? `${percentage}%` : '-'}
+                            </Link>
                           </TableCell>
                         </TableRow>
                       );
