@@ -37,7 +37,8 @@ export function Rules() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [sourceId, setSourceId] = useState<number | null>(null);
   const [testPattern, setTestPattern] = useState('');
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
@@ -110,40 +111,32 @@ export function Rules() {
   }
 
   function handleDragStart(index: number) {
-    setDraggedIndex(index);
+    setDragStartIndex(index);
+    setDragOverIndex(index);
   }
 
   function handleDragOver(e: React.DragEvent, index: number) {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index || !rules) return;
-
-    // Reorder locally for visual feedback
-    const newRules = [...rules];
-    const [draggedItem] = newRules.splice(draggedIndex, 1);
-    newRules.splice(index, 0, draggedItem);
-    setDraggedIndex(index);
+    if (dragOverIndex === null || dragOverIndex === index) return;
+    setDragOverIndex(index);
   }
 
   function handleDragEnd() {
-    if (draggedIndex !== null && rules) {
-      // Send the new order to the server
-      const newIds = rules.map((r) => r.id);
-      // Swap based on the current drag state
-      reorderMutation.mutate({ ids: newIds });
-    }
-    setDraggedIndex(null);
+    setDragStartIndex(null);
+    setDragOverIndex(null);
   }
 
   function handleDrop(e: React.DragEvent, targetIndex: number) {
     e.preventDefault();
-    if (draggedIndex === null || !rules) return;
+    if (dragStartIndex === null || !rules) return;
 
     const newRules = [...rules];
-    const [draggedItem] = newRules.splice(draggedIndex, 1);
+    const [draggedItem] = newRules.splice(dragStartIndex, 1);
     newRules.splice(targetIndex, 0, draggedItem);
 
     reorderMutation.mutate({ ids: newRules.map((r) => r.id) });
-    setDraggedIndex(null);
+    setDragStartIndex(null);
+    setDragOverIndex(null);
   }
 
   function getCategoryName(id: number) {
@@ -361,7 +354,7 @@ export function Rules() {
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   onDrop={(e) => handleDrop(e, index)}
-                  className={draggedIndex === index ? 'opacity-50' : ''}
+                  className={dragStartIndex === index ? 'opacity-50' : ''}
                 >
                   <TableCell>
                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
