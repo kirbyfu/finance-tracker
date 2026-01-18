@@ -1,24 +1,28 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { db, transactions, sources } from '../db';
-import { eq, isNull, desc, and, gte, lte } from 'drizzle-orm';
+import { eq, isNull, desc, asc, and, gte, lte, SQL } from 'drizzle-orm';
 import { parseCSV } from '../services/csv-parser';
 import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
 
 export const transactionsRouter = router({
   list: publicProcedure
-    .input(z.object({
-      sourceId: z.number().optional(),
-      categoryId: z.number().optional(),
-      uncategorizedOnly: z.boolean().optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-      limit: z.number().optional().default(100),
-      offset: z.number().optional().default(0),
-    }).optional())
+    .input(
+      z.object({
+        sourceId: z.number().optional(),
+        categoryId: z.number().optional(),
+        uncategorizedOnly: z.boolean().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        limit: z.number().optional().default(100),
+        offset: z.number().optional().default(0),
+        sort: z.enum(['date', 'amount']).optional().default('date'),
+        order: z.enum(['asc', 'desc']).optional().default('desc'),
+      }).optional()
+    )
     .query(async ({ input }) => {
       const filters = input || {};
-      const conditions = [];
+      const conditions: SQL[] = [];
 
       if (filters.sourceId) conditions.push(eq(transactions.sourceId, filters.sourceId));
       if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
@@ -29,12 +33,16 @@ export const transactionsRouter = router({
       if (filters.startDate) conditions.push(gte(transactions.date, filters.startDate));
       if (filters.endDate) conditions.push(lte(transactions.date, filters.endDate));
 
+      // Determine sort column and direction
+      const sortColumn = filters.sort === 'amount' ? transactions.amount : transactions.date;
+      const orderFn = filters.order === 'asc' ? asc : desc;
+
       if (conditions.length > 0) {
         return db
           .select()
           .from(transactions)
           .where(and(...conditions))
-          .orderBy(desc(transactions.date))
+          .orderBy(orderFn(sortColumn))
           .limit(filters.limit)
           .offset(filters.offset);
       }
@@ -42,7 +50,7 @@ export const transactionsRouter = router({
       return db
         .select()
         .from(transactions)
-        .orderBy(desc(transactions.date))
+        .orderBy(orderFn(sortColumn))
         .limit(filters.limit)
         .offset(filters.offset);
     }),
@@ -60,22 +68,9 @@ export const transactionsRouter = router({
       const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
 
       let imported = 0;
-      let duplicates = 0;
       let uncategorized = 0;
 
       for (const tx of parsed) {
-        // Check for duplicate
-        const existing = await db
-          .select()
-          .from(transactions)
-          .where(eq(transactions.hash, tx.hash))
-          .get();
-
-        if (existing) {
-          duplicates++;
-          continue;
-        }
-
         // Categorize
         const categoryId = await categorizeTransaction(tx.normalizedDescription, input.sourceId);
         if (!categoryId) uncategorized++;
@@ -83,7 +78,6 @@ export const transactionsRouter = router({
         // Insert
         await db.insert(transactions).values({
           sourceId: input.sourceId,
-          hash: tx.hash,
           date: tx.date,
           amount: tx.amount,
           description: tx.description,
@@ -95,7 +89,7 @@ export const transactionsRouter = router({
         imported++;
       }
 
-      return { imported, duplicates, uncategorized };
+      return { imported, uncategorized };
     }),
 
   update: publicProcedure

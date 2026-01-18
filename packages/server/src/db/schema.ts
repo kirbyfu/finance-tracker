@@ -20,7 +20,6 @@ export const categories = sqliteTable('categories', {
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   sourceId: integer('source_id').notNull().references(() => sources.id),
-  hash: text('hash').notNull().unique(),
   date: text('date').notNull(), // ISO date string YYYY-MM-DD
   amount: real('amount').notNull(),
   description: text('description').notNull(),

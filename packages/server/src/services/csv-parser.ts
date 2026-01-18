@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 export interface ColumnMapping {
   date: string | number;
   description: string | number;
@@ -15,7 +13,6 @@ export interface ParsedTransaction {
   description: string;
   normalizedDescription: string;
   balance: number | null;
-  hash: string;
 }
 
 export function parseCSV(
@@ -84,7 +81,6 @@ export function parseCSV(
 
     const date = normalizeDate(dateStr);
     const normalizedDescription = description.toLowerCase().trim();
-    const hash = generateHash(sourceId, date, amount, normalizedDescription);
 
     transactions.push({
       date,
@@ -92,7 +88,6 @@ export function parseCSV(
       description,
       normalizedDescription,
       balance,
-      hash,
     });
   }
 
@@ -127,13 +122,26 @@ function parseAmount(value: string | undefined): number {
 }
 
 function normalizeDate(dateStr: string): string {
-  // Try common formats and convert to YYYY-MM-DD
+  // Try to parse day/month/year format first (e.g., 15/01/2024 or 15-01-2024)
+  const dmyMatch = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    // If day > 12, it's definitely day/month/year format
+    // If month > 12, it's month/day/year format (American)
+    // Otherwise assume day/month/year (European)
+    if (dayNum > 12 || (dayNum <= 12 && monthNum <= 12)) {
+      // Treat as day/month/year
+      const date = new Date(parseInt(year, 10), monthNum - 1, dayNum);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  // Fallback to standard Date parsing for other formats (ISO, etc.)
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
   return date.toISOString().split('T')[0];
-}
-
-function generateHash(sourceId: number, date: string, amount: number, normalizedDesc: string): string {
-  const str = `${sourceId}|${date}|${amount}|${normalizedDesc}`;
-  return crypto.createHash('sha256').update(str).digest('hex').substring(0, 32);
 }

@@ -36,18 +36,6 @@ describe('transactions router', () => {
 
     const result = await caller.transactions.import({ sourceId, csvContent: csv });
     expect(result.imported).toBe(2);
-    expect(result.duplicates).toBe(0);
-  });
-
-  it('should skip duplicate transactions', async () => {
-    const caller = appRouter.createCaller({});
-    const csv = `Date,Description,Amount
-2024-01-15,AMAZON PURCHASE,-50.00`;
-
-    await caller.transactions.import({ sourceId, csvContent: csv });
-    const result = await caller.transactions.import({ sourceId, csvContent: csv });
-    expect(result.imported).toBe(0);
-    expect(result.duplicates).toBe(1);
   });
 
   it('should auto-categorize with rules', async () => {
@@ -128,11 +116,70 @@ describe('transactions router', () => {
     });
 
     expect(result.imported).toBe(2);
-    expect(result.duplicates).toBe(0);
 
     const txs = await caller.transactions.list({ sourceId: headerlessSource.id });
     expect(txs).toHaveLength(2);
     expect(txs.find(t => t.description === 'AMAZON PURCHASE')).toBeDefined();
     expect(txs.find(t => t.description === 'DEPOSIT')).toBeDefined();
+  });
+
+  describe('sorting', () => {
+    beforeEach(async () => {
+      const caller = appRouter.createCaller({});
+      // Import transactions with different dates and amounts
+      const csv = `Date,Description,Amount
+2024-01-10,SMALL PURCHASE,-10.00
+2024-01-15,LARGE PURCHASE,-500.00
+2024-01-12,MEDIUM PURCHASE,-100.00`;
+      await caller.transactions.import({ sourceId, csvContent: csv });
+    });
+
+    it('sorts by date ascending', async () => {
+      const caller = appRouter.createCaller({});
+      const result = await caller.transactions.list({
+        sort: 'date',
+        order: 'asc',
+      });
+
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].date >= result[i - 1].date).toBe(true);
+      }
+    });
+
+    it('sorts by date descending (default)', async () => {
+      const caller = appRouter.createCaller({});
+      const result = await caller.transactions.list({
+        sort: 'date',
+        order: 'desc',
+      });
+
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].date <= result[i - 1].date).toBe(true);
+      }
+    });
+
+    it('sorts by amount ascending', async () => {
+      const caller = appRouter.createCaller({});
+      const result = await caller.transactions.list({
+        sort: 'amount',
+        order: 'asc',
+      });
+
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].amount >= result[i - 1].amount).toBe(true);
+      }
+    });
+
+    it('sorts by amount descending', async () => {
+      const caller = appRouter.createCaller({});
+      const result = await caller.transactions.list({
+        sort: 'amount',
+        order: 'desc',
+      });
+
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].amount <= result[i - 1].amount).toBe(true);
+      }
+    });
   });
 });
