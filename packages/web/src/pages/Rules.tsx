@@ -216,7 +216,7 @@ export function Rules() {
                               <TableRow key={tx.id}>
                                 <TableCell>{tx.date}</TableCell>
                                 <TableCell className="font-mono text-xs">
-                                  {tx.normalizedDescription}
+                                  {tx.description}
                                 </TableCell>
                                 <TableCell
                                   className={tx.amount < 0 ? 'text-red-600' : 'text-green-600'}

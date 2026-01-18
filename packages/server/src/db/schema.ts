@@ -23,7 +23,6 @@ export const transactions = sqliteTable('transactions', {
   date: text('date').notNull(), // ISO date string YYYY-MM-DD
   amount: real('amount').notNull(),
   description: text('description').notNull(),
-  normalizedDescription: text('normalized_description').notNull(),
   balance: real('balance'),
   categoryId: integer('category_id').references(() => categories.id),
   manualCategoryId: integer('manual_category_id').references(() => categories.id),

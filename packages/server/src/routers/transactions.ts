@@ -72,7 +72,7 @@ export const transactionsRouter = router({
 
       for (const tx of parsed) {
         // Categorize
-        const categoryId = await categorizeTransaction(tx.normalizedDescription, input.sourceId);
+        const categoryId = await categorizeTransaction(tx.description, input.sourceId);
         if (!categoryId) uncategorized++;
 
         // Insert
@@ -81,7 +81,6 @@ export const transactionsRouter = router({
           date: tx.date,
           amount: tx.amount,
           description: tx.description,
-          normalizedDescription: tx.normalizedDescription,
           balance: tx.balance,
           categoryId,
         });

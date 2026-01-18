@@ -2,7 +2,7 @@ import { db, rules, transactions } from '../db';
 import { eq, isNull, asc } from 'drizzle-orm';
 
 export async function categorizeTransaction(
-  normalizedDescription: string,
+  description: string,
   sourceId: number
 ): Promise<number | null> {
   const allRules = await db.select().from(rules).orderBy(asc(rules.priority));
@@ -13,7 +13,7 @@ export async function categorizeTransaction(
 
     try {
       const regex = new RegExp(rule.pattern, 'i');
-      if (regex.test(normalizedDescription)) {
+      if (regex.test(description)) {
         return rule.categoryId;
       }
     } catch {
@@ -32,7 +32,7 @@ export async function recategorizeAll(): Promise<{ updated: number }> {
 
   let updated = 0;
   for (const tx of uncategorized) {
-    const categoryId = await categorizeTransaction(tx.normalizedDescription, tx.sourceId);
+    const categoryId = await categorizeTransaction(tx.description, tx.sourceId);
     if (categoryId && categoryId !== tx.categoryId) {
       await db.update(transactions).set({ categoryId }).where(eq(transactions.id, tx.id));
       updated++;

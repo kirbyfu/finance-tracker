@@ -55,6 +55,6 @@ export const rulesRouter = router({
     .query(async ({ input }) => {
       const allTransactions = await db.select().from(transactions);
       const regex = new RegExp(input.pattern, 'i');
-      return allTransactions.filter(t => regex.test(t.normalizedDescription));
+      return allTransactions.filter(t => regex.test(t.description));
     }),
 });

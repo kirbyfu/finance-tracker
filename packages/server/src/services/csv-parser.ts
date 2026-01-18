@@ -11,7 +11,6 @@ export interface ParsedTransaction {
   date: string;
   amount: number;
   description: string;
-  normalizedDescription: string;
   balance: number | null;
 }
 
@@ -80,13 +79,11 @@ export function parseCSV(
     }
 
     const date = normalizeDate(dateStr);
-    const normalizedDescription = description.toLowerCase().trim();
 
     transactions.push({
       date,
       amount,
       description,
-      normalizedDescription,
       balance,
     });
   }

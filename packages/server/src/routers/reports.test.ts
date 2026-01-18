@@ -30,8 +30,8 @@ describe('reports router', () => {
 
   it('should return monthly breakdown', async () => {
     await db.insert(transactions).values([
-      { sourceId, hash: 'a', date: '2024-01-15', amount: -100, description: 'x', normalizedDescription: 'x', categoryId: groceriesId },
-      { sourceId, hash: 'b', date: '2024-01-20', amount: -50, description: 'y', normalizedDescription: 'y', categoryId: groceriesId },
+      { sourceId, hash: 'a', date: '2024-01-15', amount: -100, description: 'x', categoryId: groceriesId },
+      { sourceId, hash: 'b', date: '2024-01-20', amount: -50, description: 'y', categoryId: groceriesId },
     ]);
 
     const caller = appRouter.createCaller({});
@@ -43,7 +43,7 @@ describe('reports router', () => {
 
   it('should mark transfers correctly', async () => {
     await db.insert(transactions).values({
-      sourceId, hash: 'c', date: '2024-01-15', amount: -500, description: 'z', normalizedDescription: 'z', categoryId: transferId,
+      sourceId, hash: 'c', date: '2024-01-15', amount: -500, description: 'z', categoryId: transferId,
     });
 
     const caller = appRouter.createCaller({});
@@ -55,8 +55,8 @@ describe('reports router', () => {
 
   it('should return annual breakdown', async () => {
     await db.insert(transactions).values([
-      { sourceId, hash: 'd', date: '2024-01-15', amount: -100, description: 'x', normalizedDescription: 'x', categoryId: groceriesId },
-      { sourceId, hash: 'e', date: '2024-06-15', amount: -200, description: 'y', normalizedDescription: 'y', categoryId: groceriesId },
+      { sourceId, hash: 'd', date: '2024-01-15', amount: -100, description: 'x', categoryId: groceriesId },
+      { sourceId, hash: 'e', date: '2024-06-15', amount: -200, description: 'y', categoryId: groceriesId },
     ]);
 
     const caller = appRouter.createCaller({});
@@ -68,7 +68,7 @@ describe('reports router', () => {
 
   it('should handle uncategorized transactions', async () => {
     await db.insert(transactions).values({
-      sourceId, hash: 'f', date: '2024-01-15', amount: -75, description: 'unknown', normalizedDescription: 'unknown',
+      sourceId, hash: 'f', date: '2024-01-15', amount: -75, description: 'unknown',
     });
 
     const caller = appRouter.createCaller({});
