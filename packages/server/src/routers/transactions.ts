@@ -57,7 +57,7 @@ export const transactionsRouter = router({
       if (!source) throw new Error('Source not found');
 
       const columnMapping = JSON.parse(source.columnMapping);
-      const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping);
+      const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
 
       let imported = 0;
       let duplicates = 0;
