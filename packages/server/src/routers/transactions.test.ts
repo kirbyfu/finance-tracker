@@ -104,4 +104,35 @@ describe('transactions router', () => {
     const result = await caller.transactions.list();
     expect(result.length).toBe(0);
   });
+
+  it('should import transactions from headerless CSV using column indices', async () => {
+    // Create a source with hasHeaderRow=false and numeric column mapping
+    const [headerlessSource] = await db.insert(sources).values({
+      name: 'Headerless Bank',
+      type: 'bank',
+      hasHeaderRow: false,
+      columnMapping: JSON.stringify({
+        date: 1,
+        description: 2,
+        amount: 3,
+      }),
+    }).returning();
+
+    const caller = appRouter.createCaller({});
+    const csv = `2024-01-15,AMAZON PURCHASE,-50.00
+2024-01-16,DEPOSIT,1000.00`;
+
+    const result = await caller.transactions.import({
+      sourceId: headerlessSource.id,
+      csvContent: csv
+    });
+
+    expect(result.imported).toBe(2);
+    expect(result.duplicates).toBe(0);
+
+    const txs = await caller.transactions.list({ sourceId: headerlessSource.id });
+    expect(txs).toHaveLength(2);
+    expect(txs.find(t => t.description === 'AMAZON PURCHASE')).toBeDefined();
+    expect(txs.find(t => t.description === 'DEPOSIT')).toBeDefined();
+  });
 });
