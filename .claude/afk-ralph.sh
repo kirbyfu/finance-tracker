@@ -14,7 +14,23 @@ for ((i=1; i<=$1; i++)); do
   4. Append your progress to progress.txt. \
   5. Commit your changes. \
   ONLY WORK ON A SINGLE TASK. \
-  If the PRD is complete, output <promise>COMPLETE</promise>.")
+  If the PRD is complete, output <promise>COMPLETE</promise>.
+  
+  When choosing the next task, prioritize in this order: \
+  1. Architectural decisions and core abstractions \
+  2. Integration points between modules \
+  3. Unknown unknowns and spike work \
+  4. Standard features and implementation \
+  5. Polish, cleanup, and quick wins \
+  Fail fast on risky work. Save easy wins for later. \
+
+  After completing each task, append to progress.txt: \
+  - Task completed and PRD item reference \
+  - Key decisions made and reasoning \
+  - Files changed \
+  - Any blockers or notes for next iteration \
+  Keep entries concise. Sacrifice grammar for the sake of concision. This file helps future iterations skip exploration \
+")
 
   echo "$result"
 
