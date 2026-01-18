@@ -6,6 +6,7 @@ import { Import } from '@/pages/Import';
 import { Transactions } from '@/pages/Transactions';
 import { Rules } from '@/pages/Rules';
 import { Reports } from '@/pages/Reports';
+import { MultiYearComparison } from '@/pages/MultiYearComparison';
 import { Dashboard } from '@/pages/Dashboard';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/import" element={<Import />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/reports/years" element={<MultiYearComparison />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/rules" element={<Rules />} />
           <Route path="/sources" element={<Sources />} />

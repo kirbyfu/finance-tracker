@@ -76,6 +76,25 @@ export const reportsRouter = router({
 
       return years;
     }),
+
+  multiYear: publicProcedure
+    .input(z.object({
+      years: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const currentYear = new Date().getFullYear();
+      const startYear = currentYear - input.years + 1;
+      const years: { year: number; breakdown: CategorySummary[] }[] = [];
+
+      for (let year = startYear; year <= currentYear; year++) {
+        const startDate = `${year}-01-01`;
+        const endDate = `${year}-12-31`;
+        const breakdown = await getBreakdown(startDate, endDate);
+        years.push({ year, breakdown });
+      }
+
+      return years;
+    }),
 });
 
 async function getBreakdown(startDate: string, endDate: string): Promise<CategorySummary[]> {

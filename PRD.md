@@ -30,7 +30,7 @@ Relocate the year Select dropdown from the page header to right next to the mont
 ### Task 8: Add prev/next navigation buttons for month/year ✅
 Add left (<) and right (>) arrow buttons near the date pickers. In monthly view, they navigate by month. In annual view, they navigate by year. Buttons should be disabled at reasonable bounds (e.g., don't go past current month/year into future).
 
-### Task 9: Create multi-year comparison table page
+### Task 9: Create multi-year comparison table page ✅
 Create a new page `/reports/years` that shows a table with columns:
 - Year
 - Each category present in any year (ordered: highest positive/income first desc, then highest expenses first by absolute value desc)

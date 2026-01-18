@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -295,6 +295,12 @@ export function Reports() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Reports</h1>
+        <Link to="/reports/years">
+          <Button variant="outline">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Multi-Year Comparison
+          </Button>
+        </Link>
       </div>
 
       <Tabs value={view} onValueChange={handleTabChange} className="space-y-4">

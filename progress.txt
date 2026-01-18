@@ -6,3 +6,4 @@ Task 5: Added `year` and `month` URL params. State initialized from URL (default
 Task 6: Replaced month Select dropdown with Popover containing 3x4 grid of month buttons. Added @radix-ui/react-popover and created Popover UI component. Current month highlighted with default variant.
 Task 7: Moved year picker from page header to next to month picker in monthly tab. Also added year picker to annual tab so both views have their own date selection controls.
 Task 8: Added prev/next navigation buttons (< >) on Reports page. Monthly view navigates by month (wrapping year). Annual view navigates by year. Next buttons disabled when at current month/year.
+Task 9: Created multi-year comparison page at /reports/years. Shows table with years as columns, categories as rows (income first desc, then expenses by absolute value desc), and Net row. Added backend endpoint reports.multiYear. Added "Multi-Year Comparison" button on Reports page.
