@@ -258,20 +258,6 @@ export function Reports() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Reports</h1>
-        <div className="flex gap-2">
-          <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {yearOptions.map((y) => (
-                <SelectItem key={y} value={y.toString()}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <Tabs value={view} onValueChange={handleTabChange} className="space-y-4">
@@ -306,6 +292,18 @@ export function Reports() {
                 </div>
               </PopoverContent>
             </Popover>
+            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Summary Cards */}
@@ -492,6 +490,21 @@ export function Reports() {
         </TabsContent>
 
         <TabsContent value="annual" className="space-y-4">
+          <div className="flex gap-2 mb-4">
+            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>

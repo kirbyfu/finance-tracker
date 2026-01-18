@@ -24,7 +24,7 @@ Add `year` and `month` URL params. Initialize state from URL params (defaulting 
 ### Task 6: Replace month dropdown with 3x4 grid picker ✅
 Replace the Select dropdown for month with a popover containing a 3x4 grid of month buttons (Jan-Dec). Style like a date picker calendar. Highlight current selection.
 
-### Task 7: Move year picker next to month picker
+### Task 7: Move year picker next to month picker ✅
 Relocate the year Select dropdown from the page header to right next to the month picker (within the monthly tab). They should appear as a cohesive date selection unit.
 
 ### Task 8: Add prev/next navigation buttons for month/year
