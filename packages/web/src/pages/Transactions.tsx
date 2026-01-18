@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, ChevronsLeft } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 const PAGE_SIZE_OPTIONS = [
@@ -535,6 +535,14 @@ export function Transactions() {
                   </div>
                   {pageSize !== 'all' && (
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(0)}
+                        disabled={page === 0}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
