@@ -25,6 +25,35 @@ import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-reac
 
 const PAGE_SIZE = 50;
 
+interface SortableHeaderProps {
+  label: string;
+  column: 'date' | 'amount';
+  currentSort: 'date' | 'amount';
+  currentOrder: 'asc' | 'desc';
+  onSort: (column: 'date' | 'amount') => void;
+  className?: string;
+}
+
+function SortableHeader({ label, column, currentSort, currentOrder, onSort, className }: SortableHeaderProps) {
+  const isActive = currentSort === column;
+
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive && (
+          <span className="text-xs">
+            {currentOrder === 'asc' ? '▲' : '▼'}
+          </span>
+        )}
+      </div>
+    </TableHead>
+  );
+}
+
 export function Transactions() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -56,6 +85,16 @@ export function Transactions() {
 
     setSearchParams(newParams);
     setPage(0);
+  };
+
+  const handleSort = (column: 'date' | 'amount') => {
+    if (filters.sort === column) {
+      // Toggle direction
+      updateFilters({ order: filters.order === 'asc' ? 'desc' : 'asc' });
+    } else {
+      // New column, default to descending
+      updateFilters({ sort: column, order: 'desc' });
+    }
   };
 
   const [page, setPage] = useState(0);
@@ -266,13 +305,27 @@ export function Transactions() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-28">Date</TableHead>
+                    <SortableHeader
+                      label="Date"
+                      column="date"
+                      currentSort={filters.sort}
+                      currentOrder={filters.order}
+                      onSort={handleSort}
+                      className="w-28"
+                    />
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-28 text-right">Amount</TableHead>
+                    <SortableHeader
+                      label="Amount"
+                      column="amount"
+                      currentSort={filters.sort}
+                      currentOrder={filters.order}
+                      onSort={handleSort}
+                      className="w-28 text-right"
+                    />
                     <TableHead className="w-40">Category</TableHead>
                     <TableHead className="w-32">Source</TableHead>
                     <TableHead className="w-48">Notes</TableHead>
-                    <TableHead className="w-16">Actions</TableHead>
+                    <TableHead className="w-16"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
