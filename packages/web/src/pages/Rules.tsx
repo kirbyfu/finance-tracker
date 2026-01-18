@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 export function Rules() {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,6 +38,7 @@ export function Rules() {
   const [sourceId, setSourceId] = useState<number | null>(null);
   const [testPattern, setTestPattern] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const { data: rules, isLoading } = trpc.rules.list.useQuery();
@@ -396,7 +398,7 @@ export function Rules() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteMutation.mutate({ id: rule.id })}
+                        onClick={() => setDeleteId(rule.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -415,6 +417,15 @@ export function Rules() {
           </Table>
         </CardContent>
       </Card>
+
+      <ConfirmDeleteDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={() => deleteId && deleteMutation.mutate({ id: deleteId })}
+        title="Delete Rule"
+        description="Are you sure you want to delete this rule? This will not affect already categorized transactions."
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

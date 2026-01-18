@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 const PAGE_SIZE = 50;
 
@@ -100,6 +101,7 @@ export function Transactions() {
   const [page, setPage] = useState(0);
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteValue, setNoteValue] = useState('');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -481,7 +483,7 @@ export function Transactions() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => deleteMutation.mutate({ id: tx.id })}
+                            onClick={() => setDeleteId(tx.id)}
                           >
                             <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                           </Button>
@@ -522,6 +524,15 @@ export function Transactions() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDeleteDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={() => deleteId && deleteMutation.mutate({ id: deleteId })}
+        title="Delete Transaction"
+        description="Are you sure you want to delete this transaction? This action cannot be undone."
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

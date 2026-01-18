@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 interface ColumnMapping {
   date: string | number;
@@ -49,6 +50,7 @@ export function Sources() {
     description: '',
     amount: '',
   });
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const { data: sources, isLoading } = trpc.sources.list.useQuery();
@@ -271,7 +273,7 @@ export function Sources() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(source)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate({ id: source.id })}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(source.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -289,6 +291,15 @@ export function Sources() {
           </Table>
         </CardContent>
       </Card>
+
+      <ConfirmDeleteDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={() => deleteId && deleteMutation.mutate({ id: deleteId })}
+        title="Delete Source"
+        description="Are you sure you want to delete this source? This will also delete all transactions imported from this source."
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

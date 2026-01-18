@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 const COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
@@ -35,6 +36,7 @@ export function Categories() {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#6b7280');
   const [isTransfer, setIsTransfer] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const { data: categories, isLoading } = trpc.categories.list.useQuery();
@@ -159,7 +161,7 @@ export function Categories() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(category)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate({ id: category.id })}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(category.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -177,6 +179,15 @@ export function Categories() {
           </Table>
         </CardContent>
       </Card>
+
+      <ConfirmDeleteDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={() => deleteId && deleteMutation.mutate({ id: deleteId })}
+        title="Delete Category"
+        description="Are you sure you want to delete this category? Transactions using this category will become uncategorized."
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }
