@@ -24,7 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 
 interface SortableHeaderProps {
   label: string;

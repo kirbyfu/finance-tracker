@@ -4,7 +4,7 @@ Frontend changes do not require tests.
 
 ## Transactions Page
 
-### Task 1: Change default page size from 50 to 100
+### Task 1: Change default page size from 50 to 100 ✅
 In `packages/web/src/pages/Transactions.tsx`, change `PAGE_SIZE` from 50 to 100.
 
 ### Task 2: Add page size selector with 100, 1000, All options
