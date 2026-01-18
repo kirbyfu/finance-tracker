@@ -1,3 +1,4 @@
 Task 1: Changed PAGE_SIZE from 50 to 100 in Transactions.tsx
 Task 2: Added page size selector dropdown (100, 1000, All) near pagination controls. Pagination buttons hidden when "All" selected.
 Task 3: Added "First Page" button (double chevron icon) before Previous button. Disabled when on page 0.
+Task 4: Added useSearchParams to persist Monthly/Annual tab selection in URL via `view` param. Defaults to monthly.

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -54,8 +54,18 @@ function formatCurrency(amount: number): string {
 
 export function Reports() {
   const currentDate = new Date();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [year, setYear] = useState(currentDate.getFullYear());
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
+
+  // Get tab from URL, default to 'monthly'
+  const view = searchParams.get('view') === 'annual' ? 'annual' : 'monthly';
+  const handleTabChange = (value: string) => {
+    setSearchParams((prev) => {
+      prev.set('view', value);
+      return prev;
+    });
+  };
 
   // Fetch categories for color mapping
   const { data: categories } = trpc.categories.list.useQuery();
@@ -238,7 +248,7 @@ export function Reports() {
         </div>
       </div>
 
-      <Tabs defaultValue="monthly" className="space-y-4">
+      <Tabs value={view} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="monthly">Monthly</TabsTrigger>
           <TabsTrigger value="annual">Annual</TabsTrigger>

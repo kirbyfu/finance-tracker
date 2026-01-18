@@ -15,7 +15,7 @@ Add a button to jump directly to page 1 (first page) in the pagination controls.
 
 ## Reports Page
 
-### Task 4: Persist Monthly/Annual tab selection in URL
+### Task 4: Persist Monthly/Annual tab selection in URL ✅
 Use `useSearchParams` to read/write `view` param (values: `monthly`, `annual`). Initialize tab from URL, default to `monthly`. Update URL when tab changes.
 
 ### Task 5: Persist year and month in URL params
