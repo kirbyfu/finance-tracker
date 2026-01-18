@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,18 +23,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface Filters {
-  sourceId?: number;
-  categoryId?: number;
-  uncategorizedOnly: boolean;
-  startDate?: string;
-  endDate?: string;
-}
-
 const PAGE_SIZE = 50;
 
 export function Transactions() {
-  const [filters, setFilters] = useState<Filters>({ uncategorizedOnly: false });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Parse URL params
+  const filters = {
+    sourceId: searchParams.get('sourceId') ? Number(searchParams.get('sourceId')) : undefined,
+    categoryId: searchParams.get('categoryId') === 'uncategorized'
+      ? undefined
+      : searchParams.get('categoryId')
+        ? Number(searchParams.get('categoryId'))
+        : undefined,
+    uncategorizedOnly: searchParams.get('categoryId') === 'uncategorized' || searchParams.get('uncategorizedOnly') === 'true',
+    startDate: searchParams.get('startDate') || undefined,
+    endDate: searchParams.get('endDate') || undefined,
+    sort: (searchParams.get('sort') as 'date' | 'amount') || 'date',
+    order: (searchParams.get('order') as 'asc' | 'desc') || 'desc',
+  };
+
+  const updateFilters = (updates: Partial<typeof filters>) => {
+    const newParams = new URLSearchParams(searchParams);
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === '' || value === false) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+
+    setSearchParams(newParams);
+    setPage(0);
+  };
+
   const [page, setPage] = useState(0);
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteValue, setNoteValue] = useState('');
@@ -48,6 +72,8 @@ export function Transactions() {
     uncategorizedOnly: filters.uncategorizedOnly,
     startDate: filters.startDate,
     endDate: filters.endDate,
+    sort: filters.sort,
+    order: filters.order,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
@@ -142,8 +168,7 @@ export function Transactions() {
               <Select
                 value={filters.sourceId?.toString() || 'all'}
                 onValueChange={(v) => {
-                  setFilters({ ...filters, sourceId: v === 'all' ? undefined : parseInt(v) });
-                  setPage(0);
+                  updateFilters({ sourceId: v === 'all' ? undefined : parseInt(v) });
                 }}
               >
                 <SelectTrigger className="mt-1">
@@ -165,8 +190,7 @@ export function Transactions() {
               <Select
                 value={filters.categoryId?.toString() || 'all'}
                 onValueChange={(v) => {
-                  setFilters({ ...filters, categoryId: v === 'all' ? undefined : parseInt(v) });
-                  setPage(0);
+                  updateFilters({ categoryId: v === 'all' ? undefined : parseInt(v) });
                 }}
               >
                 <SelectTrigger className="mt-1">
@@ -195,8 +219,7 @@ export function Transactions() {
                 type="date"
                 value={filters.startDate || ''}
                 onChange={(e) => {
-                  setFilters({ ...filters, startDate: e.target.value || undefined });
-                  setPage(0);
+                  updateFilters({ startDate: e.target.value || undefined });
                 }}
                 className="mt-1"
               />
@@ -208,8 +231,7 @@ export function Transactions() {
                 type="date"
                 value={filters.endDate || ''}
                 onChange={(e) => {
-                  setFilters({ ...filters, endDate: e.target.value || undefined });
-                  setPage(0);
+                  updateFilters({ endDate: e.target.value || undefined });
                 }}
                 className="mt-1"
               />
@@ -220,8 +242,7 @@ export function Transactions() {
                 <Switch
                   checked={filters.uncategorizedOnly}
                   onCheckedChange={(checked) => {
-                    setFilters({ ...filters, uncategorizedOnly: checked });
-                    setPage(0);
+                    updateFilters({ uncategorizedOnly: checked });
                   }}
                 />
                 <Label>Uncategorized only</Label>
