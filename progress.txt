@@ -3,3 +3,4 @@ Task 2: Added page size selector dropdown (100, 1000, All) near pagination contr
 Task 3: Added "First Page" button (double chevron icon) before Previous button. Disabled when on page 0.
 Task 4: Added useSearchParams to persist Monthly/Annual tab selection in URL via `view` param. Defaults to monthly.
 Task 5: Added `year` and `month` URL params. State initialized from URL (defaults to current date). Selectors update URL on change.
+Task 6: Replaced month Select dropdown with Popover containing 3x4 grid of month buttons. Added @radix-ui/react-popover and created Popover UI component. Current month highlighted with default variant.

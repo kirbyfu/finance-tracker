@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -37,6 +39,11 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 const COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
   '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
@@ -55,6 +62,7 @@ function formatCurrency(amount: number): string {
 export function Reports() {
   const currentDate = new Date();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
   // Get year/month from URL, default to current date
   const yearParam = searchParams.get('year');
@@ -274,18 +282,30 @@ export function Reports() {
 
         <TabsContent value="monthly" className="space-y-4">
           <div className="flex gap-2 mb-4">
-            <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((m, idx) => (
-                  <SelectItem key={idx} value={(idx + 1).toString()}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-36 justify-start">
+                  {MONTHS[month - 1]}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="start">
+                <div className="grid grid-cols-3 gap-2">
+                  {MONTHS_SHORT.map((m, idx) => (
+                    <Button
+                      key={idx}
+                      variant={month === idx + 1 ? 'default' : 'ghost'}
+                      className="h-9"
+                      onClick={() => {
+                        setMonth(idx + 1);
+                        setMonthPickerOpen(false);
+                      }}
+                    >
+                      {m}
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Summary Cards */}

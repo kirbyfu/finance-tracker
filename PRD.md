@@ -21,7 +21,7 @@ Use `useSearchParams` to read/write `view` param (values: `monthly`, `annual`). 
 ### Task 5: Persist year and month in URL params ✅
 Add `year` and `month` URL params. Initialize state from URL params (defaulting to current date). Update URL when year/month changes. Ensure URL stays in sync with selectors.
 
-### Task 6: Replace month dropdown with 3x4 grid picker
+### Task 6: Replace month dropdown with 3x4 grid picker ✅
 Replace the Select dropdown for month with a popover containing a 3x4 grid of month buttons (Jan-Dec). Style like a date picker calendar. Highlight current selection.
 
 ### Task 7: Move year picker next to month picker
