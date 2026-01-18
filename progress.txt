@@ -1,1 +1,2 @@
 Task 1: Changed PAGE_SIZE from 50 to 100 in Transactions.tsx
+Task 2: Added page size selector dropdown (100, 1000, All) near pagination controls. Pagination buttons hidden when "All" selected.

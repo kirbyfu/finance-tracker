@@ -24,7 +24,13 @@ import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [
+  { value: '100', label: '100' },
+  { value: '1000', label: '1000' },
+  { value: 'all', label: 'All' },
+] as const;
+
+type PageSizeValue = typeof PAGE_SIZE_OPTIONS[number]['value'];
 
 interface SortableHeaderProps {
   label: string;
@@ -99,6 +105,7 @@ export function Transactions() {
   };
 
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSizeValue>('100');
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteValue, setNoteValue] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -107,6 +114,8 @@ export function Transactions() {
 
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
+
+  const numericPageSize = pageSize === 'all' ? undefined : parseInt(pageSize);
   const { data: transactions, isLoading } = trpc.transactions.list.useQuery({
     sourceId: filters.sourceId,
     categoryId: filters.categoryId,
@@ -115,8 +124,8 @@ export function Transactions() {
     endDate: filters.endDate,
     sort: filters.sort,
     order: filters.order,
-    limit: PAGE_SIZE,
-    offset: page * PAGE_SIZE,
+    limit: numericPageSize,
+    offset: numericPageSize ? page * numericPageSize : undefined,
   });
 
   const categoryMap = new Map(categories?.map(c => [c.id, c.name]) || []);
@@ -217,7 +226,12 @@ export function Transactions() {
     return tx.manualCategoryId ?? tx.categoryId;
   }
 
-  const hasMore = transactions?.length === PAGE_SIZE;
+  const hasMore = numericPageSize ? transactions?.length === numericPageSize : false;
+
+  const handlePageSizeChange = (value: PageSizeValue) => {
+    setPageSize(value);
+    setPage(0);
+  };
 
   return (
     <div className="space-y-6">
@@ -497,27 +511,50 @@ export function Transactions() {
               {/* Pagination */}
               <div className="flex items-center justify-between px-4 py-3 border-t">
                 <div className="text-sm text-muted-foreground">
-                  Showing {page * PAGE_SIZE + 1} - {page * PAGE_SIZE + (transactions?.length || 0)} transactions
+                  {pageSize === 'all' ? (
+                    <>Showing all {transactions?.length || 0} transactions</>
+                  ) : (
+                    <>Showing {page * numericPageSize! + 1} - {page * numericPageSize! + (transactions?.length || 0)} transactions</>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={!hasMore}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-muted-foreground">Per page:</Label>
+                    <Select value={pageSize} onValueChange={handlePageSizeChange}>
+                      <SelectTrigger className="w-20 h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {pageSize !== 'all' && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(0, p - 1))}
+                        disabled={page === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={!hasMore}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

@@ -7,7 +7,7 @@ Frontend changes do not require tests.
 ### Task 1: Change default page size from 50 to 100 ✅
 In `packages/web/src/pages/Transactions.tsx`, change `PAGE_SIZE` from 50 to 100.
 
-### Task 2: Add page size selector with 100, 1000, All options
+### Task 2: Add page size selector with 100, 1000, All options ✅
 Add a dropdown near the pagination controls that lets user select page size: 100 (default), 1000, or All. Store selection in component state. When "All" is selected, fetch without limit.
 
 ### Task 3: Add "First Page" button to pagination
