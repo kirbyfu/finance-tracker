@@ -123,6 +123,96 @@ describe('transactions router', () => {
     expect(txs.find(t => t.description === 'DEPOSIT')).toBeDefined();
   });
 
+  describe('recategorizeAll', () => {
+    it('should recategorize transactions when rules change', async () => {
+      const caller = appRouter.createCaller({});
+
+      // Create a rule and import a matching transaction
+      await db.insert(rules).values({
+        pattern: 'AMAZON',
+        categoryId,
+        priority: 0,
+      });
+
+      const csv = `Date,Description,Amount
+2024-01-15,AMAZON PURCHASE,-50.00`;
+
+      await caller.transactions.import({ sourceId, csvContent: csv });
+      let txs = await caller.transactions.list();
+      expect(txs[0].categoryId).toBe(categoryId);
+
+      // Create a new category and update the rule
+      const [newCat] = await db.insert(categories).values({ name: 'Online Shopping' }).returning();
+      await db.run(sql`UPDATE rules SET category_id = ${newCat.id}`);
+
+      // Recategorize
+      const result = await caller.transactions.recategorizeAll();
+      expect(result.updated).toBe(1);
+
+      txs = await caller.transactions.list();
+      expect(txs[0].categoryId).toBe(newCat.id);
+    });
+
+    it('should clear category when no rule matches', async () => {
+      const caller = appRouter.createCaller({});
+
+      // Create a rule and import a matching transaction
+      await db.insert(rules).values({
+        pattern: 'AMAZON',
+        categoryId,
+        priority: 0,
+      });
+
+      const csv = `Date,Description,Amount
+2024-01-15,AMAZON PURCHASE,-50.00`;
+
+      await caller.transactions.import({ sourceId, csvContent: csv });
+      let txs = await caller.transactions.list();
+      expect(txs[0].categoryId).toBe(categoryId);
+
+      // Delete the rule
+      await db.run(sql`DELETE FROM rules`);
+
+      // Recategorize - should clear the category
+      const result = await caller.transactions.recategorizeAll();
+      expect(result.updated).toBe(1);
+
+      txs = await caller.transactions.list();
+      expect(txs[0].categoryId).toBeNull();
+    });
+
+    it('should not update transactions with manual category', async () => {
+      const caller = appRouter.createCaller({});
+
+      const csv = `Date,Description,Amount
+2024-01-15,AMAZON PURCHASE,-50.00`;
+
+      await caller.transactions.import({ sourceId, csvContent: csv });
+      let txs = await caller.transactions.list();
+
+      // Manually set category
+      await caller.transactions.update({
+        id: txs[0].id,
+        manualCategoryId: categoryId,
+      });
+
+      // Create a rule that would match
+      const [newCat] = await db.insert(categories).values({ name: 'Other' }).returning();
+      await db.insert(rules).values({
+        pattern: 'AMAZON',
+        categoryId: newCat.id,
+        priority: 0,
+      });
+
+      // Recategorize - should not affect manual categorization
+      const result = await caller.transactions.recategorizeAll();
+      expect(result.updated).toBe(0);
+
+      txs = await caller.transactions.list();
+      expect(txs[0].manualCategoryId).toBe(categoryId);
+    });
+  });
+
   describe('sorting', () => {
     beforeEach(async () => {
       const caller = appRouter.createCaller({});

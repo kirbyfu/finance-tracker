@@ -1,5 +1,5 @@
+import { asc, eq, isNull } from 'drizzle-orm';
 import { db, rules, transactions } from '../db';
-import { eq, isNull, asc } from 'drizzle-orm';
 
 export async function categorizeTransaction(
   description: string,
@@ -33,7 +33,7 @@ export async function recategorizeAll(): Promise<{ updated: number }> {
   let updated = 0;
   for (const tx of uncategorized) {
     const categoryId = await categorizeTransaction(tx.description, tx.sourceId);
-    if (categoryId && categoryId !== tx.categoryId) {
+    if (categoryId !== tx.categoryId) {
       await db.update(transactions).set({ categoryId }).where(eq(transactions.id, tx.id));
       updated++;
     }
