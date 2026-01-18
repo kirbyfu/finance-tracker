@@ -1,12 +1,12 @@
 import crypto from 'crypto';
 
 export interface ColumnMapping {
-  date: string;
-  description: string;
-  amount?: string;
-  debit?: string;
-  credit?: string;
-  balance?: string;
+  date: string | number;
+  description: string | number;
+  amount?: string | number;
+  debit?: string | number;
+  credit?: string | number;
+  balance?: string | number;
 }
 
 export interface ParsedTransaction {
@@ -21,42 +21,65 @@ export interface ParsedTransaction {
 export function parseCSV(
   csvContent: string,
   sourceId: number,
-  columnMapping: ColumnMapping
+  columnMapping: ColumnMapping,
+  hasHeaderRow: boolean = true
 ): ParsedTransaction[] {
   const lines = csvContent.trim().split('\n');
-  if (lines.length < 2) return [];
+  if (lines.length < 1) return [];
 
-  const headers = parseCSVLine(lines[0]);
-  const headerIndex: Record<string, number> = {};
-  headers.forEach((h, i) => {
-    headerIndex[h.trim()] = i;
-  });
+  let headerIndex: Record<string, number> = {};
+  let dataStartIndex = 0;
+
+  if (hasHeaderRow) {
+    if (lines.length < 2) return [];
+    const headers = parseCSVLine(lines[0]);
+    headers.forEach((h, i) => {
+      headerIndex[h.trim()] = i;
+    });
+    dataStartIndex = 1;
+  }
+
+  const getColumnIndex = (mapping: string | number): number => {
+    if (typeof mapping === 'number') {
+      return mapping - 1; // Convert 1-based to 0-based
+    }
+    return headerIndex[mapping] ?? -1;
+  };
 
   const transactions: ParsedTransaction[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = dataStartIndex; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
     if (values.length === 0) continue;
 
-    const dateStr = values[headerIndex[columnMapping.date]]?.trim();
-    const description = values[headerIndex[columnMapping.description]]?.trim();
+    const dateIdx = getColumnIndex(columnMapping.date);
+    const descIdx = getColumnIndex(columnMapping.description);
+
+    const dateStr = values[dateIdx]?.trim();
+    const description = values[descIdx]?.trim();
 
     if (!dateStr || !description) continue;
 
     let amount: number;
-    if (columnMapping.amount) {
-      amount = parseAmount(values[headerIndex[columnMapping.amount]]);
-    } else if (columnMapping.debit && columnMapping.credit) {
-      const debit = parseAmount(values[headerIndex[columnMapping.debit]]);
-      const credit = parseAmount(values[headerIndex[columnMapping.credit]]);
+    if (columnMapping.amount !== undefined) {
+      const amountIdx = getColumnIndex(columnMapping.amount);
+      amount = parseAmount(values[amountIdx]);
+    } else if (columnMapping.debit !== undefined && columnMapping.credit !== undefined) {
+      const debitIdx = getColumnIndex(columnMapping.debit);
+      const creditIdx = getColumnIndex(columnMapping.credit);
+      const debit = parseAmount(values[debitIdx]);
+      const credit = parseAmount(values[creditIdx]);
       amount = credit - debit;
     } else {
       continue;
     }
 
     let balance: number | null = null;
-    if (columnMapping.balance && headerIndex[columnMapping.balance] !== undefined) {
-      balance = parseAmount(values[headerIndex[columnMapping.balance]]);
+    if (columnMapping.balance !== undefined) {
+      const balanceIdx = getColumnIndex(columnMapping.balance);
+      if (balanceIdx >= 0) {
+        balance = parseAmount(values[balanceIdx]);
+      }
     }
 
     const date = normalizeDate(dateStr);
