@@ -10,7 +10,23 @@
 
 ---
 
-### Task 1: Add hasHeaderRow column to database schema
+## Progress Status
+
+| Task | Description | Status | Commit |
+|------|-------------|--------|--------|
+| 1 | Add hasHeaderRow column to database schema | ✅ DONE | `5947fdd` |
+| 2 | Update csv-parser to handle index-based lookups | ✅ DONE | `60ff823` |
+| 3 | Update sources router schema validation | ✅ DONE | `3cb1f37` |
+| 4 | Update transactions router to pass hasHeaderRow | ✅ DONE | `3d70fa6` |
+| 5 | Add integration test for headerless CSV import | ⏳ TODO | - |
+| 6 | Update Sources form with toggle | ⏳ TODO | - |
+| 7 | Final verification | ⏳ TODO | - |
+
+**Resume from:** Task 5
+
+---
+
+### Task 1: ✅ DONE Add hasHeaderRow column to database schema
 
 **Files:**
 - Modify: `packages/server/src/db/schema.ts:3-9`
@@ -44,7 +60,7 @@ git commit -m "feat: add hasHeaderRow column to sources table"
 
 ---
 
-### Task 2: Update csv-parser to handle index-based lookups
+### Task 2: ✅ DONE Update csv-parser to handle index-based lookups
 
 **Files:**
 - Modify: `packages/server/src/services/csv-parser.ts`
@@ -227,7 +243,7 @@ git commit -m "feat: support headerless CSV parsing with 1-based column indices"
 
 ---
 
-### Task 3: Update sources router schema validation
+### Task 3: ✅ DONE Update sources router schema validation
 
 **Files:**
 - Modify: `packages/server/src/routers/sources.ts`
@@ -306,7 +322,7 @@ git commit -m "feat: add hasHeaderRow to sources router schema"
 
 ---
 
-### Task 4: Update transactions router to pass hasHeaderRow
+### Task 4: ✅ DONE Update transactions router to pass hasHeaderRow
 
 **Files:**
 - Modify: `packages/server/src/routers/transactions.ts:59-60`
@@ -341,7 +357,7 @@ git commit -m "feat: pass hasHeaderRow to csv parser during import"
 
 ---
 
-### Task 5: Add integration test for headerless CSV import
+### Task 5: ⏳ TODO Add integration test for headerless CSV import
 
 **Files:**
 - Modify: `packages/server/src/routers/transactions.test.ts`
@@ -397,7 +413,7 @@ git commit -m "test: add integration test for headerless CSV import"
 
 ---
 
-### Task 6: Update Sources form with toggle
+### Task 6: ⏳ TODO Update Sources form with toggle
 
 **Files:**
 - Modify: `packages/web/src/pages/Sources.tsx`
@@ -612,7 +628,7 @@ git commit -m "feat: add header row toggle to sources form"
 
 ---
 
-### Task 7: Final verification
+### Task 7: ⏳ TODO Final verification
 
 **Step 7.1: Run all tests**
 
