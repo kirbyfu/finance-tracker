@@ -1,4 +1,9 @@
 import { defineConfig } from 'vitest/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const testDbPath = path.resolve(__dirname, '../../data/finance.test.db');
 
 export default defineConfig({
   test: {
@@ -11,5 +16,9 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    env: {
+      DATABASE_URL: testDbPath,
+    },
+    globalSetup: ['./vitest.setup.ts'],
   },
 });
