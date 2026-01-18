@@ -18,11 +18,11 @@
 | 2 | Update csv-parser to handle index-based lookups | ✅ DONE | `60ff823` |
 | 3 | Update sources router schema validation | ✅ DONE | `3cb1f37` |
 | 4 | Update transactions router to pass hasHeaderRow | ✅ DONE | `3d70fa6` |
-| 5 | Add integration test for headerless CSV import | ⏳ TODO | - |
-| 6 | Update Sources form with toggle | ⏳ TODO | - |
-| 7 | Final verification | ⏳ TODO | - |
+| 5 | Add integration test for headerless CSV import | ✅ DONE | `f308eec` |
+| 6 | Update Sources form with toggle | ✅ DONE | `353ba76` |
+| 7 | Final verification | ✅ DONE | - |
 
-**Resume from:** Task 5
+**Status:** COMPLETE
 
 ---
 
@@ -357,7 +357,7 @@ git commit -m "feat: pass hasHeaderRow to csv parser during import"
 
 ---
 
-### Task 5: ⏳ TODO Add integration test for headerless CSV import
+### Task 5: ✅ DONE Add integration test for headerless CSV import
 
 **Files:**
 - Modify: `packages/server/src/routers/transactions.test.ts`
@@ -413,7 +413,7 @@ git commit -m "test: add integration test for headerless CSV import"
 
 ---
 
-### Task 6: ⏳ TODO Update Sources form with toggle
+### Task 6: ✅ DONE Update Sources form with toggle
 
 **Files:**
 - Modify: `packages/web/src/pages/Sources.tsx`
@@ -628,7 +628,7 @@ git commit -m "feat: add header row toggle to sources form"
 
 ---
 
-### Task 7: ⏳ TODO Final verification
+### Task 7: ✅ DONE Final verification
 
 **Step 7.1: Run all tests**
 
