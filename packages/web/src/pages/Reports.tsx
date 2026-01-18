@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -83,6 +84,42 @@ export function Reports() {
       return prev;
     });
   };
+
+  const goToPrevMonth = () => {
+    if (month === 1) {
+      setSearchParams((prev) => {
+        prev.set('year', (year - 1).toString());
+        prev.set('month', '12');
+        return prev;
+      });
+    } else {
+      setMonth(month - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (month === 12) {
+      setSearchParams((prev) => {
+        prev.set('year', (year + 1).toString());
+        prev.set('month', '1');
+        return prev;
+      });
+    } else {
+      setMonth(month + 1);
+    }
+  };
+
+  const goToPrevYear = () => {
+    setYear(year - 1);
+  };
+
+  const goToNextYear = () => {
+    setYear(year + 1);
+  };
+
+  // Disable next buttons if at current month/year
+  const isCurrentMonth = year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
+  const isCurrentYear = year === currentDate.getFullYear();
 
   // Get tab from URL, default to 'monthly'
   const view = searchParams.get('view') === 'annual' ? 'annual' : 'monthly';
@@ -267,7 +304,15 @@ export function Reports() {
         </TabsList>
 
         <TabsContent value="monthly" className="space-y-4">
-          <div className="flex gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToPrevMonth}
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-36 justify-start">
@@ -304,6 +349,15 @@ export function Reports() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToNextMonth}
+              disabled={isCurrentMonth}
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Summary Cards */}
@@ -490,7 +544,15 @@ export function Reports() {
         </TabsContent>
 
         <TabsContent value="annual" className="space-y-4">
-          <div className="flex gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToPrevYear}
+              aria-label="Previous year"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
               <SelectTrigger className="w-24">
                 <SelectValue />
@@ -503,6 +565,15 @@ export function Reports() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToNextYear}
+              disabled={isCurrentYear}
+              aria-label="Next year"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Summary Cards */}

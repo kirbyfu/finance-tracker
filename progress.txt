@@ -5,3 +5,4 @@ Task 4: Added useSearchParams to persist Monthly/Annual tab selection in URL via
 Task 5: Added `year` and `month` URL params. State initialized from URL (defaults to current date). Selectors update URL on change.
 Task 6: Replaced month Select dropdown with Popover containing 3x4 grid of month buttons. Added @radix-ui/react-popover and created Popover UI component. Current month highlighted with default variant.
 Task 7: Moved year picker from page header to next to month picker in monthly tab. Also added year picker to annual tab so both views have their own date selection controls.
+Task 8: Added prev/next navigation buttons (< >) on Reports page. Monthly view navigates by month (wrapping year). Annual view navigates by year. Next buttons disabled when at current month/year.

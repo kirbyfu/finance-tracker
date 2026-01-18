@@ -27,7 +27,7 @@ Replace the Select dropdown for month with a popover containing a 3x4 grid of mo
 ### Task 7: Move year picker next to month picker ✅
 Relocate the year Select dropdown from the page header to right next to the month picker (within the monthly tab). They should appear as a cohesive date selection unit.
 
-### Task 8: Add prev/next navigation buttons for month/year
+### Task 8: Add prev/next navigation buttons for month/year ✅
 Add left (<) and right (>) arrow buttons near the date pickers. In monthly view, they navigate by month. In annual view, they navigate by year. Buttons should be disabled at reasonable bounds (e.g., don't go past current month/year into future).
 
 ### Task 9: Create multi-year comparison table page
