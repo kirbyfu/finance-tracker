@@ -29,12 +29,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 interface ColumnMapping {
-  date: string;
-  description: string;
-  amount?: string;
-  debit?: string;
-  credit?: string;
-  balance?: string;
+  date: string | number;
+  description: string | number;
+  amount?: string | number;
+  debit?: string | number;
+  credit?: string | number;
+  balance?: string | number;
 }
 
 export function Sources() {
@@ -43,6 +43,7 @@ export function Sources() {
   const [name, setName] = useState('');
   const [type, setType] = useState<'bank' | 'credit_card'>('bank');
   const [amountType, setAmountType] = useState<'single' | 'split'>('single');
+  const [hasHeaderRow, setHasHeaderRow] = useState(true);
   const [mapping, setMapping] = useState<ColumnMapping>({
     date: '',
     description: '',
@@ -73,6 +74,7 @@ export function Sources() {
     setName('');
     setType('bank');
     setAmountType('single');
+    setHasHeaderRow(true);
     setMapping({ date: '', description: '', amount: '' });
   }
 
@@ -84,6 +86,7 @@ export function Sources() {
     const parsed = JSON.parse(source.columnMapping) as ColumnMapping;
     setMapping(parsed);
     setAmountType(parsed.amount ? 'single' : 'split');
+    setHasHeaderRow(source.hasHeaderRow ?? true);
     setIsOpen(true);
   }
 
@@ -92,10 +95,15 @@ export function Sources() {
       ? { date: mapping.date, description: mapping.description, amount: mapping.amount, balance: mapping.balance }
       : { date: mapping.date, description: mapping.description, debit: mapping.debit, credit: mapping.credit, balance: mapping.balance };
 
+    // Convert string numbers to actual numbers for headerless mode
+    const processedMapping = hasHeaderRow ? columnMapping : Object.fromEntries(
+      Object.entries(columnMapping).map(([k, v]) => [k, v ? parseInt(v as string, 10) || v : v])
+    );
+
     if (editingId) {
-      updateMutation.mutate({ id: editingId, name, type, columnMapping });
+      updateMutation.mutate({ id: editingId, name, type, hasHeaderRow, columnMapping: processedMapping });
     } else {
-      createMutation.mutate({ name, type, columnMapping });
+      createMutation.mutate({ name, type, hasHeaderRow, columnMapping: processedMapping });
     }
   }
 
@@ -145,34 +153,85 @@ export function Sources() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="hasHeaderRow"
+                  checked={hasHeaderRow}
+                  onChange={(e) => setHasHeaderRow(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="hasHeaderRow">CSV has header row</Label>
+              </div>
+              {!hasHeaderRow && (
+                <p className="text-sm text-muted-foreground">
+                  Enter column positions (1 = first column)
+                </p>
+              )}
               <div>
-                <Label>Date Column</Label>
-                <Input value={mapping.date} onChange={(e) => setMapping({ ...mapping, date: e.target.value })} placeholder="e.g., Post Date" />
+                <Label>{hasHeaderRow ? 'Date Column' : 'Date Column (position)'}</Label>
+                <Input
+                  type={hasHeaderRow ? 'text' : 'number'}
+                  min={hasHeaderRow ? undefined : 1}
+                  value={mapping.date}
+                  onChange={(e) => setMapping({ ...mapping, date: e.target.value })}
+                  placeholder={hasHeaderRow ? 'e.g., Post Date' : 'e.g., 1'}
+                />
               </div>
               <div>
-                <Label>Description Column</Label>
-                <Input value={mapping.description} onChange={(e) => setMapping({ ...mapping, description: e.target.value })} placeholder="e.g., Description" />
+                <Label>{hasHeaderRow ? 'Description Column' : 'Description Column (position)'}</Label>
+                <Input
+                  type={hasHeaderRow ? 'text' : 'number'}
+                  min={hasHeaderRow ? undefined : 1}
+                  value={mapping.description}
+                  onChange={(e) => setMapping({ ...mapping, description: e.target.value })}
+                  placeholder={hasHeaderRow ? 'e.g., Description' : 'e.g., 2'}
+                />
               </div>
               {amountType === 'single' ? (
                 <div>
-                  <Label>Amount Column</Label>
-                  <Input value={mapping.amount || ''} onChange={(e) => setMapping({ ...mapping, amount: e.target.value })} placeholder="e.g., Amount" />
+                  <Label>{hasHeaderRow ? 'Amount Column' : 'Amount Column (position)'}</Label>
+                  <Input
+                    type={hasHeaderRow ? 'text' : 'number'}
+                    min={hasHeaderRow ? undefined : 1}
+                    value={mapping.amount || ''}
+                    onChange={(e) => setMapping({ ...mapping, amount: e.target.value })}
+                    placeholder={hasHeaderRow ? 'e.g., Amount' : 'e.g., 3'}
+                  />
                 </div>
               ) : (
                 <>
                   <div>
-                    <Label>Debit Column</Label>
-                    <Input value={mapping.debit || ''} onChange={(e) => setMapping({ ...mapping, debit: e.target.value })} placeholder="e.g., Debit" />
+                    <Label>{hasHeaderRow ? 'Debit Column' : 'Debit Column (position)'}</Label>
+                    <Input
+                      type={hasHeaderRow ? 'text' : 'number'}
+                      min={hasHeaderRow ? undefined : 1}
+                      value={mapping.debit || ''}
+                      onChange={(e) => setMapping({ ...mapping, debit: e.target.value })}
+                      placeholder={hasHeaderRow ? 'e.g., Debit' : 'e.g., 3'}
+                    />
                   </div>
                   <div>
-                    <Label>Credit Column</Label>
-                    <Input value={mapping.credit || ''} onChange={(e) => setMapping({ ...mapping, credit: e.target.value })} placeholder="e.g., Credit" />
+                    <Label>{hasHeaderRow ? 'Credit Column' : 'Credit Column (position)'}</Label>
+                    <Input
+                      type={hasHeaderRow ? 'text' : 'number'}
+                      min={hasHeaderRow ? undefined : 1}
+                      value={mapping.credit || ''}
+                      onChange={(e) => setMapping({ ...mapping, credit: e.target.value })}
+                      placeholder={hasHeaderRow ? 'e.g., Credit' : 'e.g., 4'}
+                    />
                   </div>
                 </>
               )}
               <div>
-                <Label>Balance Column (optional)</Label>
-                <Input value={mapping.balance || ''} onChange={(e) => setMapping({ ...mapping, balance: e.target.value })} placeholder="e.g., Balance" />
+                <Label>{hasHeaderRow ? 'Balance Column (optional)' : 'Balance Column (position, optional)'}</Label>
+                <Input
+                  type={hasHeaderRow ? 'text' : 'number'}
+                  min={hasHeaderRow ? undefined : 1}
+                  value={mapping.balance || ''}
+                  onChange={(e) => setMapping({ ...mapping, balance: e.target.value })}
+                  placeholder={hasHeaderRow ? 'e.g., Balance' : 'e.g., 5'}
+                />
               </div>
               <Button onClick={handleSubmit} className="w-full">
                 {editingId ? 'Update' : 'Create'}
