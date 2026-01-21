@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -117,6 +118,7 @@ export function Transactions() {
     date: string;
     sourceId: number;
   } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const utils = trpc.useUtils();
 
@@ -233,6 +235,42 @@ export function Transactions() {
   function getEffectiveCategoryId(tx: NonNullable<typeof transactions>[number]): number | null {
     return tx.manualCategoryId ?? tx.categoryId;
   }
+
+  function toggleSelection(id: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!transactions) return;
+    const allIds = transactions.map(tx => tx.id);
+    const allSelected = allIds.every(id => selectedIds.has(id));
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  const selectionTotal = useMemo(() => {
+    if (!transactions || selectedIds.size === 0) return 0;
+    return transactions
+      .filter(tx => selectedIds.has(tx.id))
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [transactions, selectedIds]);
+
+  const allSelected = transactions && transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
 
   const hasMore = numericPageSize ? transactions?.length === numericPageSize : false;
 
@@ -378,6 +416,12 @@ export function Transactions() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <SortableHeader
                       label="Date"
                       column="date"
@@ -404,8 +448,15 @@ export function Transactions() {
                 <TableBody>
                   {transactions?.map((tx) => {
                     const effectiveCategoryId = getEffectiveCategoryId(tx);
+                    const isSelected = selectedIds.has(tx.id);
                     return (
-                      <TableRow key={tx.id}>
+                      <TableRow key={tx.id} data-state={isSelected ? 'selected' : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelection(tx.id)}
+                          />
+                        </TableCell>
                         <TableCell className="text-sm">{formatDate(tx.date)}</TableCell>
                         <TableCell>
                           <div className="font-medium">{tx.description}</div>
