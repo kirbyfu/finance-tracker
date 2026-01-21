@@ -103,9 +103,9 @@ export function Sources() {
     );
 
     if (editingId) {
-      updateMutation.mutate({ id: editingId, name, type, hasHeaderRow, columnMapping: processedMapping });
+      updateMutation.mutate({ id: editingId, name, type, hasHeaderRow, columnMapping: processedMapping as ColumnMapping });
     } else {
-      createMutation.mutate({ name, type, hasHeaderRow, columnMapping: processedMapping });
+      createMutation.mutate({ name, type, hasHeaderRow, columnMapping: processedMapping as ColumnMapping });
     }
   }
 

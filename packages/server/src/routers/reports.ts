@@ -3,7 +3,7 @@ import { router, publicProcedure } from '../trpc';
 import { db, transactions, categories } from '../db';
 import { and, gte, lte } from 'drizzle-orm';
 
-interface CategorySummary {
+export interface CategorySummary {
   categoryId: number | null;
   categoryName: string;
   total: number;

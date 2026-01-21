@@ -62,14 +62,6 @@ export function Dashboard() {
     return map;
   }, [categories]);
 
-  const categoryNameMap = useMemo(() => {
-    const map = new Map<number | null, string>();
-    categories?.forEach((cat) => {
-      map.set(cat.id, cat.name);
-    });
-    map.set(null, 'Uncategorized');
-    return map;
-  }, [categories]);
 
   // Monthly report for current month
   const { data: monthlyData, isLoading: monthlyLoading } = trpc.reports.monthly.useQuery({
@@ -231,7 +223,7 @@ export function Dashboard() {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={({ name, percent }) =>
+                    label={({ percent }) =>
                       percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''
                     }
                     labelLine={false}

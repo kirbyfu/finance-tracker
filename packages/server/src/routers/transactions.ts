@@ -5,23 +5,23 @@ import { eq, isNull, desc, asc, and, gte, lte, SQL } from 'drizzle-orm';
 import { parseCSV } from '../services/csv-parser';
 import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
 
+const listInputSchema = z.object({
+  sourceId: z.number().optional(),
+  categoryId: z.number().optional(),
+  uncategorizedOnly: z.boolean().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  limit: z.number().optional().default(100),
+  offset: z.number().optional().default(0),
+  sort: z.enum(['date', 'amount']).optional().default('date'),
+  order: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
 export const transactionsRouter = router({
   list: publicProcedure
-    .input(
-      z.object({
-        sourceId: z.number().optional(),
-        categoryId: z.number().optional(),
-        uncategorizedOnly: z.boolean().optional(),
-        startDate: z.string().optional(),
-        endDate: z.string().optional(),
-        limit: z.number().optional().default(100),
-        offset: z.number().optional().default(0),
-        sort: z.enum(['date', 'amount']).optional().default('date'),
-        order: z.enum(['asc', 'desc']).optional().default('desc'),
-      }).optional()
-    )
+    .input(listInputSchema.optional())
     .query(async ({ input }) => {
-      const filters = input || {};
+      const filters = input ?? { limit: 100, offset: 0, sort: 'date' as const, order: 'desc' as const };
       const conditions: SQL[] = [];
 
       if (filters.sourceId) conditions.push(eq(transactions.sourceId, filters.sourceId));

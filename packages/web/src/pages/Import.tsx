@@ -61,7 +61,7 @@ export function Import() {
         sourceId: parseInt(selectedSourceId),
         csvContent,
       });
-      setResult(importResult);
+      setResult({ ...importResult, duplicates: 0 });
       // Reset file selection after successful import
       setFileName('');
       setCsvContent('');

@@ -16,7 +16,7 @@ export interface ParsedTransaction {
 
 export function parseCSV(
   csvContent: string,
-  sourceId: number,
+  _sourceId: number,
   columnMapping: ColumnMapping,
   hasHeaderRow: boolean = true
 ): ParsedTransaction[] {
