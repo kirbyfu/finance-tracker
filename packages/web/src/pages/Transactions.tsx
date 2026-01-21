@@ -1,11 +1,10 @@
-import { useState, useMemo, useRef, memo, useCallback } from 'react';
+import { useRef, useState, useMemo, useCallback, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -15,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, Wand2 } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, ChevronsLeft, Wand2 } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { CreateRulePanel } from '@/components/CreateRulePanel';
 
@@ -25,232 +24,125 @@ const PAGE_SIZE_OPTIONS = [
   { value: 'all', label: 'All' },
 ] as const;
 
-type PageSizeValue = typeof PAGE_SIZE_OPTIONS[number]['value'];
+type PageSizeValue = (typeof PAGE_SIZE_OPTIONS)[number]['value'];
 
-interface Category {
+interface Transaction {
   id: number;
-  name: string;
-  color: string;
+  date: string;
+  description: string;
+  amount: number;
+  categoryId: number | null;
+  manualCategoryId: number | null;
+  sourceId: number;
+  notes: string | null;
 }
 
-interface TransactionRowProps {
-  tx: {
-    id: number;
-    date: string;
-    description: string;
-    amount: number;
-    categoryId: number | null;
-    manualCategoryId: number | null;
-    sourceId: number;
-    notes: string | null;
-  };
-  index: number;
-  isSelected: boolean;
-  isEditingNote: boolean;
-  noteValue: string;
-  categories: Category[] | undefined;
-  sourceName: string;
-  onSelectionClick: (id: number, index: number, event: React.MouseEvent) => void;
-  onToggleSelection: (id: number, index: number) => void;
-  onCategoryChange: (transactionId: number, categoryId: string) => void;
-  onStartNoteEdit: (transactionId: number, currentNote: string | null) => void;
-  onSaveNote: (transactionId: number) => void;
-  onCancelNoteEdit: () => void;
-  onNoteValueChange: (value: string) => void;
-  onDelete: (id: number) => void;
-  onCreateRule: (tx: { id: number; description: string; amount: number; date: string; sourceId: number }) => void;
-  style?: React.CSSProperties;
-}
+const GRID_COLS = '40px 120px 1fr 100px 155px 120px 180px 80px';
 
-function formatAmount(amount: number): string {
-  const formatted = Math.abs(amount).toFixed(2);
-  return amount < 0 ? `-$${formatted}` : `$${formatted}`;
-}
-
-function formatDate(dateStr: string): string {
+function formatDateStr(dateStr: string) {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function getCategoryName(categoryId: number | null, categories: Category[] | undefined): string {
-  if (!categoryId) return 'Uncategorized';
-  return categories?.find(c => c.id === categoryId)?.name || 'Unknown';
+function formatAmountNum(amount: number) {
+  const formatted = Math.abs(amount).toFixed(2);
+  return amount < 0 ? `-$${formatted}` : `$${formatted}`;
 }
 
-function getCategoryColor(categoryId: number | null, categories: Category[] | undefined): string {
-  if (!categoryId) return '#6b7280';
-  return categories?.find(c => c.id === categoryId)?.color || '#6b7280';
-}
-
-const TransactionRow = memo(function TransactionRow({
+const Row = memo(function Row({
   tx,
   index,
   isSelected,
-  isEditingNote,
-  noteValue,
-  categories,
+  categoryName,
+  categoryColor,
   sourceName,
-  onSelectionClick,
-  onToggleSelection,
-  onCategoryChange,
-  onStartNoteEdit,
-  onSaveNote,
-  onCancelNoteEdit,
-  onNoteValueChange,
+  onSelect,
+  onToggle,
+  onCategoryClick,
+  onNoteClick,
   onDelete,
   onCreateRule,
-  style,
-}: TransactionRowProps) {
+}: {
+  tx: Transaction;
+  index: number;
+  isSelected: boolean;
+  categoryName: string;
+  categoryColor: string | null;
+  sourceName: string;
+  onSelect: (id: number, index: number, e: React.MouseEvent) => void;
+  onToggle: (id: number, index: number) => void;
+  onCategoryClick: (id: number) => void;
+  onNoteClick: (id: number, currentNote: string | null) => void;
+  onDelete: (id: number) => void;
+  onCreateRule: (tx: Transaction) => void;
+}) {
   const effectiveCategoryId = tx.manualCategoryId ?? tx.categoryId;
 
   return (
-    <tr
-      data-state={isSelected ? 'selected' : undefined}
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest('button, input, select, [role="combobox"], [data-radix-collection-item]')) {
-          return;
-        }
-        onSelectionClick(tx.id, index, e);
-      }}
-      className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
-      style={style}
+    <div
+      className={`h-full grid items-center text-sm border-b cursor-pointer hover:bg-muted/50 select-none ${isSelected ? 'bg-muted' : ''}`}
+      style={{ gridTemplateColumns: GRID_COLS }}
+      onClick={(e) => onSelect(tx.id, index, e)}
     >
-      <td className="p-4 align-middle w-10" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
+      <div className="px-3 flex items-center" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
           checked={isSelected}
-          onCheckedChange={() => onToggleSelection(tx.id, index)}
+          onChange={() => onToggle(tx.id, index)}
+          className="w-4 h-4"
         />
-      </td>
-      <td className="p-4 align-middle text-sm w-28">{formatDate(tx.date)}</td>
-      <td className="p-4 align-middle">
-        <div className="font-medium">{tx.description}</div>
-        {tx.manualCategoryId && tx.categoryId && tx.manualCategoryId !== tx.categoryId && (
-          <div className="text-xs text-muted-foreground">
-            Auto: {getCategoryName(tx.categoryId, categories)}
-          </div>
+      </div>
+      <div className="px-3">{formatDateStr(tx.date)}</div>
+      <div className="px-3 truncate">{tx.description}</div>
+      <div className={`px-3 text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+        {formatAmountNum(tx.amount)}
+      </div>
+      <div
+        className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate flex items-center gap-2"
+        onClick={(e) => { e.stopPropagation(); onCategoryClick(tx.id); }}
+      >
+        {categoryColor && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: categoryColor }} />}
+        {categoryName}
+      </div>
+      <div className="px-3 text-muted-foreground truncate">{sourceName}</div>
+      <div
+        className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate"
+        onClick={(e) => { e.stopPropagation(); onNoteClick(tx.id, tx.notes); }}
+      >
+        {tx.notes || <span className="text-muted-foreground/50">Add note...</span>}
+      </div>
+      <div className="px-3 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        {!effectiveCategoryId && (
+          <button
+            className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary"
+            onClick={() => onCreateRule(tx)}
+            title="Create Rule"
+          >
+            <Wand2 className="h-4 w-4" />
+          </button>
         )}
-      </td>
-      <td className={`p-4 align-middle text-right font-medium w-28 ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
-        {formatAmount(tx.amount)}
-      </td>
-      <td className="p-4 align-middle w-40">
-        <Select
-          value={effectiveCategoryId?.toString() || 'none'}
-          onValueChange={(v) => onCategoryChange(tx.id, v)}
+        <button
+          className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
+          onClick={() => onDelete(tx.id)}
         >
-          <SelectTrigger className="h-8">
-            <SelectValue>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: getCategoryColor(effectiveCategoryId, categories) }}
-                />
-                <span className="truncate">{getCategoryName(effectiveCategoryId, categories)}</span>
-              </div>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">
-              <span className="text-muted-foreground">Uncategorized</span>
-            </SelectItem>
-            {categories?.map((category) => (
-              <SelectItem key={category.id} value={category.id.toString()}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  {category.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </td>
-      <td className="p-4 align-middle text-sm text-muted-foreground w-32">
-        {sourceName}
-      </td>
-      <td className="p-4 align-middle w-48">
-        {isEditingNote ? (
-          <div className="flex items-center gap-1">
-            <Input
-              value={noteValue}
-              onChange={(e) => onNoteValueChange(e.target.value)}
-              className="h-8 text-sm"
-              placeholder="Add note..."
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onSaveNote(tx.id);
-                if (e.key === 'Escape') onCancelNoteEdit();
-              }}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onSaveNote(tx.id)}
-            >
-              <Check className="h-4 w-4 text-green-600" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onCancelNoteEdit}
-            >
-              <X className="h-4 w-4 text-red-600" />
-            </Button>
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-2 cursor-pointer hover:bg-muted rounded px-2 py-1 -mx-2"
-            onClick={() => onStartNoteEdit(tx.id, tx.notes)}
-          >
-            {tx.notes ? (
-              <span className="text-sm truncate">{tx.notes}</span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Add note...</span>
-            )}
-            <Pencil className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-          </div>
-        )}
-      </td>
-      <td className="p-4 align-middle w-20">
-        <div className="flex items-center gap-1">
-          {!effectiveCategoryId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              title="Create Rule"
-              onClick={() => onCreateRule({
-                id: tx.id,
-                description: tx.description,
-                amount: tx.amount,
-                date: tx.date,
-                sourceId: tx.sourceId,
-              })}
-            >
-              <Wand2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onDelete(tx.id)}
-          >
-            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-          </Button>
-        </div>
-      </td>
-    </tr>
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 });
 
 export function Transactions() {
+  const parentRef = useRef<HTMLDivElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [noteValue, setNoteValue] = useState('');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [ruleTransaction, setRuleTransaction] = useState<Transaction | null>(null);
+  const lastClickedIndexRef = useRef<number | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSizeValue>('100');
 
   // Parse URL params
   const filters = {
@@ -269,7 +161,6 @@ export function Transactions() {
 
   const updateFilters = (updates: Partial<typeof filters>) => {
     const newParams = new URLSearchParams(searchParams);
-
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '' || value === false) {
         newParams.delete(key);
@@ -277,37 +168,17 @@ export function Transactions() {
         newParams.set(key, String(value));
       }
     });
-
     setSearchParams(newParams);
     setPage(0);
   };
 
   const handleSort = (column: 'date' | 'amount') => {
     if (filters.sort === column) {
-      // Toggle direction
       updateFilters({ order: filters.order === 'asc' ? 'desc' : 'asc' });
     } else {
-      // New column, default to descending
       updateFilters({ sort: column, order: 'desc' });
     }
   };
-
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSizeValue>('100');
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [noteValue, setNoteValue] = useState('');
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [ruleTransaction, setRuleTransaction] = useState<{
-    id: number;
-    description: string;
-    amount: number;
-    date: string;
-    sourceId: number;
-  } | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const lastClickedIndexRef = useRef<number | null>(null);
-
-  const utils = trpc.useUtils();
 
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
@@ -325,93 +196,47 @@ export function Transactions() {
     offset: numericPageSize ? page * numericPageSize : undefined,
   });
 
+  const sourceMap = useMemo(() => {
+    return new Map(sources?.map(s => [s.id, s.name]) || []);
+  }, [sources]);
+
   const categoryMap = useMemo(() => {
-    return new Map(categories?.map(c => [c.id, c.name]) || []);
+    return new Map(categories?.map(c => [c.id, { name: c.name, color: c.color }]) || []);
   }, [categories]);
 
   const hasActiveFilters = filters.categoryId || filters.uncategorizedOnly || filters.startDate || filters.endDate;
 
   const getFilterDescription = () => {
     const parts: string[] = [];
-
     if (filters.uncategorizedOnly) {
       parts.push('Uncategorized');
     } else if (filters.categoryId) {
-      parts.push(categoryMap.get(filters.categoryId) || `Category ${filters.categoryId}`);
+      parts.push(categoryMap.get(filters.categoryId)?.name || `Category ${filters.categoryId}`);
     }
-
     if (filters.startDate && filters.endDate) {
-      const start = new Date(filters.startDate).toLocaleDateString();
-      const end = new Date(filters.endDate).toLocaleDateString();
-      parts.push(`${start} - ${end}`);
+      parts.push(`${new Date(filters.startDate).toLocaleDateString()} - ${new Date(filters.endDate).toLocaleDateString()}`);
     } else if (filters.startDate) {
       parts.push(`From ${new Date(filters.startDate).toLocaleDateString()}`);
     } else if (filters.endDate) {
       parts.push(`Until ${new Date(filters.endDate).toLocaleDateString()}`);
     }
-
     return parts.join(' | ');
   };
 
   const clearUrlFilters = () => {
     const newParams = new URLSearchParams();
-    // Keep sort params if present
     if (filters.sort !== 'date') newParams.set('sort', filters.sort);
     if (filters.order !== 'desc') newParams.set('order', filters.order);
     setPage(0);
     setSearchParams(newParams);
   };
 
-  const updateMutation = trpc.transactions.update.useMutation({
-    onSuccess: () => {
-      utils.transactions.list.invalidate();
-      setEditingNoteId(null);
-      setNoteValue('');
-    },
-  });
-
-  const deleteMutation = trpc.transactions.delete.useMutation({
-    onSuccess: () => utils.transactions.list.invalidate(),
-  });
-
-  const recategorizeMutation = trpc.transactions.recategorizeAll.useMutation({
-    onSuccess: () => utils.transactions.list.invalidate(),
-  });
-
-  const handleCategoryChange = useCallback((transactionId: number, categoryId: string) => {
-    const manualCategoryId = categoryId === 'none' ? null : parseInt(categoryId);
-    updateMutation.mutate({ id: transactionId, manualCategoryId });
-  }, [updateMutation]);
-
-  const handleStartNoteEdit = useCallback((transactionId: number, currentNote: string | null) => {
-    setEditingNoteId(transactionId);
-    setNoteValue(currentNote || '');
-  }, []);
-
-  const handleSaveNote = useCallback((transactionId: number) => {
-    updateMutation.mutate({ id: transactionId, notes: noteValue || null });
-  }, [updateMutation, noteValue]);
-
-  const handleCancelNoteEdit = useCallback(() => {
-    setEditingNoteId(null);
-    setNoteValue('');
-  }, []);
-
-  const handleNoteValueChange = useCallback((value: string) => {
-    setNoteValue(value);
-  }, []);
-
-  const handleDelete = useCallback((id: number) => {
-    setDeleteId(id);
-  }, []);
-
-  const handleCreateRule = useCallback((tx: { id: number; description: string; amount: number; date: string; sourceId: number }) => {
-    setRuleTransaction(tx);
-  }, []);
-
-  const sourceMap = useMemo(() => {
-    return new Map(sources?.map(s => [s.id, s.name]) || []);
-  }, [sources]);
+  const selectionTotal = useMemo(() => {
+    if (!transactions || selectedIds.size === 0) return 0;
+    return transactions
+      .filter(tx => selectedIds.has(tx.id))
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [transactions, selectedIds]);
 
   const handleSelectionClick = useCallback((id: number, index: number, event: React.MouseEvent) => {
     const isShiftKey = event.shiftKey;
@@ -421,7 +246,6 @@ export function Transactions() {
       const start = Math.min(lastClickedIndexRef.current, index);
       const end = Math.max(lastClickedIndexRef.current, index);
       const rangeIds = transactions.slice(start, end + 1).map(tx => tx.id);
-
       setSelectedIds(prev => {
         const next = new Set(prev);
         rangeIds.forEach(rangeId => next.add(rangeId));
@@ -468,37 +292,67 @@ export function Transactions() {
     }
   }, [transactions, selectedIds]);
 
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
+  const utils = trpc.useUtils();
+  const updateMutation = trpc.transactions.update.useMutation({
+    onSuccess: () => utils.transactions.list.invalidate(),
+  });
+
+  const deleteMutation = trpc.transactions.delete.useMutation({
+    onSuccess: () => utils.transactions.list.invalidate(),
+  });
+
+  const recategorizeMutation = trpc.transactions.recategorizeAll.useMutation({
+    onSuccess: () => utils.transactions.list.invalidate(),
+  });
+
+  const handleCategoryChange = useCallback((transactionId: number, categoryId: string) => {
+    const manualCategoryId = categoryId === 'none' ? null : parseInt(categoryId);
+    updateMutation.mutate({ id: transactionId, manualCategoryId });
+  }, [updateMutation]);
+
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+
+  const handleCategoryClick = useCallback((id: number) => {
+    setEditingCategoryId(id);
   }, []);
 
-  const selectionTotal = useMemo(() => {
-    if (!transactions || selectedIds.size === 0) return 0;
-    return transactions
-      .filter(tx => selectedIds.has(tx.id))
-      .reduce((sum, tx) => sum + tx.amount, 0);
-  }, [transactions, selectedIds]);
+  const handleNoteClick = useCallback((id: number, currentNote: string | null) => {
+    setEditingNoteId(id);
+    setNoteValue(currentNote || '');
+  }, []);
 
-  const allSelected = transactions && transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
+  const handleSaveNote = useCallback((id: number, note: string) => {
+    updateMutation.mutate({ id, notes: note || null });
+    setEditingNoteId(null);
+    setNoteValue('');
+  }, [updateMutation]);
 
-  const hasMore = numericPageSize ? transactions?.length === numericPageSize : false;
+  const handleDelete = useCallback((id: number) => {
+    setDeleteId(id);
+  }, []);
+
+  const handleCreateRule = useCallback((tx: Transaction) => {
+    setRuleTransaction(tx);
+  }, []);
 
   const handlePageSizeChange = (value: PageSizeValue) => {
     setPageSize(value);
     setPage(0);
   };
 
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
+  const hasMore = numericPageSize ? transactions?.length === numericPageSize : false;
+  const allSelected = transactions && transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
+
+  const virtualizer = useVirtualizer({
     count: transactions?.length ?? 0,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, // Approximate row height
-    overscan: 10,
+    estimateSize: () => 50,
+    overscan: 5,
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col h-[calc(100vh-4rem)] gap-6">
+      <div className="flex justify-between items-center flex-shrink-0">
         <h1 className="text-2xl font-bold">Transactions</h1>
         <Button
           variant="outline"
@@ -510,7 +364,7 @@ export function Transactions() {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="flex-shrink-0">
         <CardHeader>
           <CardTitle className="text-lg">Filters</CardTitle>
         </CardHeader>
@@ -519,12 +373,7 @@ export function Transactions() {
             <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg mb-4">
               <span className="text-sm font-medium">Showing:</span>
               <span className="text-sm">{getFilterDescription()}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearUrlFilters}
-                className="ml-auto"
-              >
+              <Button variant="ghost" size="sm" onClick={clearUrlFilters} className="ml-auto">
                 Clear filters
               </Button>
             </div>
@@ -534,9 +383,7 @@ export function Transactions() {
               <Label>Source</Label>
               <Select
                 value={filters.sourceId?.toString() || 'all'}
-                onValueChange={(v) => {
-                  updateFilters({ sourceId: v === 'all' ? undefined : parseInt(v) });
-                }}
+                onValueChange={(v) => updateFilters({ sourceId: v === 'all' ? undefined : parseInt(v) })}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="All sources" />
@@ -551,14 +398,11 @@ export function Transactions() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Category</Label>
               <Select
                 value={filters.categoryId?.toString() || 'all'}
-                onValueChange={(v) => {
-                  updateFilters({ categoryId: v === 'all' ? undefined : parseInt(v) });
-                }}
+                onValueChange={(v) => updateFilters({ categoryId: v === 'all' ? undefined : parseInt(v) })}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="All categories" />
@@ -568,10 +412,7 @@ export function Transactions() {
                   {categories?.map((category) => (
                     <SelectItem key={category.id} value={category.id.toString()}>
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
                         {category.name}
                       </div>
                     </SelectItem>
@@ -579,38 +420,29 @@ export function Transactions() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Start Date</Label>
               <Input
                 type="date"
                 value={filters.startDate || ''}
-                onChange={(e) => {
-                  updateFilters({ startDate: e.target.value || undefined });
-                }}
+                onChange={(e) => updateFilters({ startDate: e.target.value || undefined })}
                 className="mt-1"
               />
             </div>
-
             <div>
               <Label>End Date</Label>
               <Input
                 type="date"
                 value={filters.endDate || ''}
-                onChange={(e) => {
-                  updateFilters({ endDate: e.target.value || undefined });
-                }}
+                onChange={(e) => updateFilters({ endDate: e.target.value || undefined })}
                 className="mt-1"
               />
             </div>
-
             <div className="flex items-end">
               <div className="flex items-center gap-2 h-10">
                 <Switch
                   checked={filters.uncategorizedOnly}
-                  onCheckedChange={(checked) => {
-                    updateFilters({ uncategorizedOnly: checked });
-                  }}
+                  onCheckedChange={(checked) => updateFilters({ uncategorizedOnly: checked })}
                 />
                 <Label>Uncategorized only</Label>
               </div>
@@ -620,8 +452,8 @@ export function Transactions() {
       </Card>
 
       {/* Transactions Table */}
-      <Card>
-        <CardContent className="p-0">
+      <Card className="flex-1 flex flex-col min-h-0">
+        <CardContent className="p-0 flex-1 flex flex-col min-h-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading transactions...</div>
           ) : transactions?.length === 0 ? (
@@ -629,94 +461,80 @@ export function Transactions() {
               No transactions found. Try adjusting your filters or import some transactions.
             </div>
           ) : (
-            <>
-              <div className="w-full">
-                <table className="w-full caption-bottom text-sm table-fixed">
-                  <thead className="[&_tr]:border-b">
-                    <tr className="border-b transition-colors hover:bg-muted/50">
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-10">
-                        <Checkbox
-                          checked={allSelected}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                      </th>
-                      <th
-                        className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-28 cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort('date')}
-                      >
-                        <div className="flex items-center gap-1">
-                          Date
-                          {filters.sort === 'date' && (
-                            <span className="text-xs">{filters.order === 'asc' ? '▲' : '▼'}</span>
-                          )}
-                        </div>
-                      </th>
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Description</th>
-                      <th
-                        className="h-12 px-4 text-right align-middle font-medium text-muted-foreground w-28 cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort('amount')}
-                      >
-                        <div className="flex items-center gap-1 justify-end">
-                          Amount
-                          {filters.sort === 'amount' && (
-                            <span className="text-xs">{filters.order === 'asc' ? '▲' : '▼'}</span>
-                          )}
-                        </div>
-                      </th>
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-40">Category</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-32">Source</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-48">Notes</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-20"></th>
-                    </tr>
-                  </thead>
-                </table>
-              </div>
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Header */}
               <div
-                ref={parentRef}
-                className="overflow-auto"
-                style={{ maxHeight: 'calc(100vh - 400px)', minHeight: '400px' }}
+                className="grid text-sm font-medium text-muted-foreground border-b bg-muted/30 flex-shrink-0 pr-[15px]"
+                style={{ gridTemplateColumns: GRID_COLS }}
               >
-                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-                  <table className="w-full caption-bottom text-sm table-fixed">
-                    <tbody className="[&_tr:last-child]:border-0">
-                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                        const tx = transactions![virtualRow.index];
-                        return (
-                          <TransactionRow
-                            key={tx.id}
-                            tx={tx}
-                            index={virtualRow.index}
-                            isSelected={selectedIds.has(tx.id)}
-                            isEditingNote={editingNoteId === tx.id}
-                            noteValue={noteValue}
-                            categories={categories}
-                            sourceName={sourceMap.get(tx.sourceId) || 'Unknown'}
-                            onSelectionClick={handleSelectionClick}
-                            onToggleSelection={toggleSelection}
-                            onCategoryChange={handleCategoryChange}
-                            onStartNoteEdit={handleStartNoteEdit}
-                            onSaveNote={handleSaveNote}
-                            onCancelNoteEdit={handleCancelNoteEdit}
-                            onNoteValueChange={handleNoteValueChange}
-                            onDelete={handleDelete}
-                            onCreateRule={handleCreateRule}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                          />
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="px-3 h-12 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={allSelected || false}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4"
+                  />
+                </div>
+                <div
+                  className="px-3 h-12 flex items-center cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('date')}
+                >
+                  Date {filters.sort === 'date' && (filters.order === 'asc' ? '▲' : '▼')}
+                </div>
+                <div className="px-3 h-12 flex items-center">Description</div>
+                <div
+                  className="px-3 h-12 flex items-center justify-end cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('amount')}
+                >
+                  Amount {filters.sort === 'amount' && (filters.order === 'asc' ? '▲' : '▼')}
+                </div>
+                <div className="px-3 h-12 flex items-center">Category</div>
+                <div className="px-3 h-12 flex items-center">Source</div>
+                <div className="px-3 h-12 flex items-center">Notes</div>
+                <div className="px-3 h-12 flex items-center"></div>
+              </div>
+
+              {/* Body */}
+              <div ref={parentRef} className="flex-1 overflow-y-scroll min-h-0">
+                <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                  {virtualizer.getVirtualItems().map((virtualRow) => {
+                    const tx = transactions![virtualRow.index];
+                    const effectiveCategoryId = tx.manualCategoryId ?? tx.categoryId;
+                    const category = effectiveCategoryId ? categoryMap.get(effectiveCategoryId) : null;
+                    const categoryName = category?.name || (effectiveCategoryId ? 'Unknown' : 'Uncategorized');
+                    const categoryColor = category?.color || null;
+                    const sourceName = sourceMap.get(tx.sourceId) || 'Unknown';
+                    return (
+                      <div
+                        key={tx.id}
+                        className="absolute left-0 w-full"
+                        style={{
+                          height: virtualRow.size,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      >
+                        <Row
+                          tx={tx}
+                          index={virtualRow.index}
+                          isSelected={selectedIds.has(tx.id)}
+                          categoryName={categoryName}
+                          categoryColor={categoryColor}
+                          sourceName={sourceName}
+                          onSelect={handleSelectionClick}
+                          onToggle={toggleSelection}
+                          onCategoryClick={handleCategoryClick}
+                          onNoteClick={handleNoteClick}
+                          onDelete={handleDelete}
+                          onCreateRule={handleCreateRule}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="flex items-center justify-between px-4 py-3 border-t flex-shrink-0">
                 <div className="text-sm text-muted-foreground">
                   {pageSize === 'all' ? (
                     <>Showing all {transactions?.length || 0} transactions</>
@@ -742,29 +560,14 @@ export function Transactions() {
                   </div>
                   {pageSize !== 'all' && (
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(0)}
-                        disabled={page === 0}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setPage(0)} disabled={page === 0}>
                         <ChevronsLeft className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => Math.max(0, p - 1))}
-                        disabled={page === 0}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Previous
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => p + 1)}
-                        disabled={!hasMore}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={!hasMore}>
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
@@ -772,7 +575,7 @@ export function Transactions() {
                   )}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -781,16 +584,93 @@ export function Transactions() {
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-4 z-50">
           <span className="font-medium">
-            {selectedIds.size} selected · {formatAmount(selectionTotal)}
+            {selectedIds.size} selected · {formatAmountNum(selectionTotal)}
           </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={clearSelection}
-            className="h-7"
-          >
+          <Button variant="secondary" size="sm" onClick={() => setSelectedIds(new Set())} className="h-7">
             Clear
           </Button>
+        </div>
+      )}
+
+      {/* Category Edit Modal */}
+      {editingCategoryId !== null && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setEditingCategoryId(null)}
+        >
+          <div className="bg-background rounded-lg p-4 shadow-lg min-w-64" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-medium mb-3">Select Category</h3>
+            <Select
+              defaultValue={
+                transactions?.find(t => t.id === editingCategoryId)?.manualCategoryId?.toString() ||
+                transactions?.find(t => t.id === editingCategoryId)?.categoryId?.toString() ||
+                'none'
+              }
+              onValueChange={(value) => {
+                handleCategoryChange(editingCategoryId, value);
+                setEditingCategoryId(null);
+              }}
+            >
+              <SelectTrigger className="mb-3">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Uncategorized</SelectItem>
+                {categories?.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
+                      {category.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              className="w-full px-3 py-2 text-sm border rounded hover:bg-muted"
+              onClick={() => setEditingCategoryId(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Note Edit Modal */}
+      {editingNoteId !== null && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setEditingNoteId(null)}
+        >
+          <div className="bg-background rounded-lg p-4 shadow-lg min-w-80" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-medium mb-3">Edit Note</h3>
+            <input
+              type="text"
+              className="w-full h-10 border rounded px-3 mb-3"
+              value={noteValue}
+              onChange={(e) => setNoteValue(e.target.value)}
+              placeholder="Add a note..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveNote(editingNoteId, noteValue);
+                if (e.key === 'Escape') setEditingNoteId(null);
+              }}
+            />
+            <div className="flex gap-2">
+              <button
+                className="flex-1 px-3 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                onClick={() => handleSaveNote(editingNoteId, noteValue)}
+              >
+                Save
+              </button>
+              <button
+                className="flex-1 px-3 py-2 text-sm border rounded hover:bg-muted"
+                onClick={() => setEditingNoteId(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
