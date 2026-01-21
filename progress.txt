@@ -16,3 +16,9 @@ Files: packages/web/src/pages/Transactions.tsx
 - Type check passes
 
 Files: packages/web/src/pages/Transactions.tsx
+
+## Task 3: Wrap selection handlers in useCallback (PRD 3)
+
+- Already completed as part of Task 1
+- All handlers already wrapped: toggleSelection, handleSelectionClick, toggleSelectAll, clearSelection
+- PRD updated to mark complete
