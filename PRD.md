@@ -2,38 +2,37 @@
 
 Frontend changes do not require tests.
 
-## Transactions Page
+## Feature 1: Inline Rule Creation from Uncategorized Transactions
 
-### Task 1: Change default page size from 50 to 100 ✅
-In `packages/web/src/pages/Transactions.tsx`, change `PAGE_SIZE` from 50 to 100.
+**Goal:** Create category + rule from an uncategorized transaction without navigating away.
 
-### Task 2: Add page size selector with 100, 1000, All options ✅
-Add a dropdown near the pagination controls that lets user select page size: 100 (default), 1000, or All. Store selection in component state. When "All" is selected, fetch without limit.
+### Tasks (priority order)
 
-### Task 3: Add "First Page" button to pagination ✅
-Add a button to jump directly to page 1 (first page) in the pagination controls. Disable when already on first page.
+- [ ] 1.1 Add "Create Rule" button to transaction rows (uncategorized only)
+- [ ] 1.2 Create slide-out panel component for rule creation
+- [ ] 1.3 Auto-generate suggested regex from transaction description (escape special chars, replace numbers with `\d+`, etc.)
+- [ ] 1.4 Add inline "Create new category" option in category dropdown (name + color picker)
+- [ ] 1.5 Add preview showing "Would match N existing transactions" using existing `rules.testPattern` endpoint
+- [ ] 1.6 Wire up save: create category (if new) then create rule in single flow
 
-## Reports Page
+## Feature 2: Multi-Row Selection with Running Total
 
-### Task 4: Persist Monthly/Annual tab selection in URL ✅
-Use `useSearchParams` to read/write `view` param (values: `monthly`, `annual`). Initialize tab from URL, default to `monthly`. Update URL when tab changes.
+**Goal:** Select multiple transaction rows and see sum of selected amounts.
 
-### Task 5: Persist year and month in URL params ✅
-Add `year` and `month` URL params. Initialize state from URL params (defaulting to current date). Update URL when year/month changes. Ensure URL stays in sync with selectors.
+### Tasks (priority order)
 
-### Task 6: Replace month dropdown with 3x4 grid picker ✅
-Replace the Select dropdown for month with a popover containing a 3x4 grid of month buttons (Jan-Dec). Style like a date picker calendar. Highlight current selection.
+- [ ] 2.1 Add selection state to transactions table (checkbox column or row click)
+- [ ] 2.2 Implement shift-click for range selection, ctrl-click for toggle
+- [ ] 2.3 Add floating selection bar at bottom: "{N} selected · ${total}" with clear button
 
-### Task 7: Move year picker next to month picker ✅
-Relocate the year Select dropdown from the page header to right next to the month picker (within the monthly tab). They should appear as a cohesive date selection unit.
+## Feature 3 (Stretch): Rule Suggestions from Uncategorized Transactions
 
-### Task 8: Add prev/next navigation buttons for month/year ✅
-Add left (<) and right (>) arrow buttons near the date pickers. In monthly view, they navigate by month. In annual view, they navigate by year. Buttons should be disabled at reasonable bounds (e.g., don't go past current month/year into future).
+**Goal:** Suggest regex patterns that would capture multiple uncategorized transactions.
 
-### Task 9: Create multi-year comparison table page ✅
-Create a new page `/reports/years` that shows a table with columns:
-- Year
-- Each category present in any year (ordered: highest positive/income first desc, then highest expenses first by absolute value desc)
-- Net (income + expenses)
+### Tasks (priority order)
 
-Fetch data for the last 5 years with the option to fetch more years. Each cell shows the total for that category in that year. Add navigation to this page from the Reports page (e.g., a link/button "View Multi-Year Comparison").
+- [ ] 3.1 Create backend service to analyze uncategorized descriptions and find common patterns (shared substrings, merchant names)
+- [ ] 3.2 Add `rules.getSuggestions` endpoint returning suggested patterns with match counts
+- [ ] 3.3 Add "Suggested Rules" section to rules page or uncategorized transactions view
+- [ ] 3.4 One-click accept: prompts for category, creates rule
+
