@@ -23,7 +23,7 @@ Frontend changes do not require tests.
 
 - [x] 2.1 Add selection state to transactions table (checkbox column or row click)
 - [x] 2.2 Implement shift-click for range selection, ctrl-click for toggle
-- [ ] 2.3 Add floating selection bar at bottom: "{N} selected · ${total}" with clear button
+- [x] 2.3 Add floating selection bar at bottom: "{N} selected · ${total}" with clear button
 
 ## Feature 3 (Stretch): Rule Suggestions from Uncategorized Transactions
 

@@ -697,6 +697,23 @@ export function Transactions() {
         </CardContent>
       </Card>
 
+      {/* Floating Selection Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-4 z-50">
+          <span className="font-medium">
+            {selectedIds.size} selected · {formatAmount(selectionTotal)}
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={clearSelection}
+            className="h-7"
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
       <ConfirmDeleteDialog
         open={deleteId !== null}
         onOpenChange={(open) => !open && setDeleteId(null)}
