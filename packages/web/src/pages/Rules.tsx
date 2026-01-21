@@ -26,7 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw, Lightbulb, Check } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 export function Rules() {
@@ -41,10 +41,14 @@ export function Rules() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  const [acceptingSuggestion, setAcceptingSuggestion] = useState<{ pattern: string; matchCount: number } | null>(null);
+  const [suggestionCategoryId, setSuggestionCategoryId] = useState<number | null>(null);
+
   const utils = trpc.useUtils();
   const { data: rules, isLoading } = trpc.rules.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
   const { data: sources } = trpc.sources.list.useQuery();
+  const { data: suggestions } = trpc.rules.getSuggestions.useQuery();
   const { data: testResults } = trpc.rules.test.useQuery(
     { pattern: testPattern },
     { enabled: testPattern.length > 0 && isTestOpen }
@@ -155,6 +159,17 @@ export function Rules() {
   function openTestDialog(rulePattern?: string) {
     setTestPattern(rulePattern || '');
     setIsTestOpen(true);
+  }
+
+  function handleAcceptSuggestion() {
+    if (!acceptingSuggestion || !suggestionCategoryId) return;
+    createMutation.mutate({
+      pattern: acceptingSuggestion.pattern,
+      categoryId: suggestionCategoryId,
+      priority: rules?.length || 0,
+    });
+    setAcceptingSuggestion(null);
+    setSuggestionCategoryId(null);
   }
 
   if (isLoading) return <p>Loading...</p>;
@@ -419,6 +434,115 @@ export function Rules() {
         description="Are you sure you want to delete this rule? This will not affect already categorized transactions."
         isDeleting={deleteMutation.isPending}
       />
+
+      {suggestions && suggestions.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5" />
+              Suggested Rules
+            </CardTitle>
+            <CardDescription>
+              Patterns detected in your uncategorized transactions. Click to create a rule.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pattern</TableHead>
+                  <TableHead>Matches</TableHead>
+                  <TableHead>Sample Descriptions</TableHead>
+                  <TableHead className="w-24">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {suggestions.map((suggestion, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <code className="bg-muted px-2 py-1 rounded text-sm">{suggestion.pattern}</code>
+                    </TableCell>
+                    <TableCell>{suggestion.matchCount}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                      {suggestion.sampleDescriptions.slice(0, 2).join(', ')}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openTestDialog(suggestion.pattern)}
+                          title="Test pattern"
+                        >
+                          <FlaskConical className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setAcceptingSuggestion({ pattern: suggestion.pattern, matchCount: suggestion.matchCount })}
+                          title="Create rule from suggestion"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={acceptingSuggestion !== null} onOpenChange={(open) => !open && setAcceptingSuggestion(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Rule from Suggestion</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Pattern</Label>
+              <code className="block bg-muted px-3 py-2 rounded text-sm mt-1">
+                {acceptingSuggestion?.pattern}
+              </code>
+              <p className="text-xs text-muted-foreground mt-1">
+                Will match {acceptingSuggestion?.matchCount} transactions
+              </p>
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select
+                value={suggestionCategoryId?.toString() || ''}
+                onValueChange={(v) => setSuggestionCategoryId(parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleAcceptSuggestion}
+              className="w-full"
+              disabled={!suggestionCategoryId}
+            >
+              Create Rule
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
