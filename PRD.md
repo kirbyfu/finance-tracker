@@ -11,7 +11,7 @@ Frontend changes do not require tests.
 - [x] 1.1 Add "Create Rule" button to transaction rows (uncategorized only)
 - [x] 1.2 Create slide-out panel component for rule creation
 - [x] 1.3 Auto-generate suggested regex from transaction description (escape special chars, replace numbers with `\d+`, etc.)
-- [ ] 1.4 Add inline "Create new category" option in category dropdown (name + color picker)
+- [x] 1.4 Add inline "Create new category" option in category dropdown (name + color picker)
 - [ ] 1.5 Add preview showing "Would match N existing transactions" using existing `rules.testPattern` endpoint
 - [ ] 1.6 Wire up save: create category (if new) then create rule in single flow
 
