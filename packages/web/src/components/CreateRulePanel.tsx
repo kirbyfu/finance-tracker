@@ -72,6 +72,12 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: rules } = trpc.rules.list.useQuery();
 
+  // Test pattern against existing transactions
+  const { data: matchingTransactions, isLoading: isTestingPattern } = trpc.rules.test.useQuery(
+    { pattern },
+    { enabled: open && pattern.length > 0 }
+  );
+
   const createCategoryMutation = trpc.categories.create.useMutation({
     onSuccess: (newCategory) => {
       utils.categories.list.invalidate();
@@ -168,6 +174,17 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
             <p className="text-xs text-muted-foreground mt-1">
               Uses JavaScript regex. Case-insensitive matching.
             </p>
+            {pattern && (
+              <div className="mt-2 text-sm">
+                {isTestingPattern ? (
+                  <span className="text-muted-foreground">Testing pattern...</span>
+                ) : matchingTransactions ? (
+                  <span className="text-primary font-medium">
+                    Would match {matchingTransactions.length} existing transaction{matchingTransactions.length === 1 ? '' : 's'}
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div>
