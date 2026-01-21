@@ -11,5 +11,5 @@ Goal: Reduce lag when selecting checkboxes or editing notes in `packages/web/src
 - [x] 1. Extract table row into memoized `TransactionRow` component with `React.memo()`. Pass only primitive props or stable references.
 - [x] 2. Memoize `categoryMap` with `useMemo()` (currently recreated every render ~line 142)
 - [x] 3. Wrap selection handlers (`toggleSelection`, `handleRowClick`, etc.) in `useCallback` (completed in task 1)
-- [ ] 4. Add virtualization using `@tanstack/react-virtual` for rendering only visible rows while supporting large datasets
+- [x] 4. Add virtualization using `@tanstack/react-virtual` for rendering only visible rows while supporting large datasets
 

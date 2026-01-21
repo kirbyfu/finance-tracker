@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,14 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, Wand2 } from 'lucide-react';
@@ -33,35 +26,6 @@ const PAGE_SIZE_OPTIONS = [
 ] as const;
 
 type PageSizeValue = typeof PAGE_SIZE_OPTIONS[number]['value'];
-
-interface SortableHeaderProps {
-  label: string;
-  column: 'date' | 'amount';
-  currentSort: 'date' | 'amount';
-  currentOrder: 'asc' | 'desc';
-  onSort: (column: 'date' | 'amount') => void;
-  className?: string;
-}
-
-function SortableHeader({ label, column, currentSort, currentOrder, onSort, className }: SortableHeaderProps) {
-  const isActive = currentSort === column;
-
-  return (
-    <TableHead
-      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
-      onClick={() => onSort(column)}
-    >
-      <div className="flex items-center gap-1">
-        {label}
-        {isActive && (
-          <span className="text-xs">
-            {currentOrder === 'asc' ? '▲' : '▼'}
-          </span>
-        )}
-      </div>
-    </TableHead>
-  );
-}
 
 interface Category {
   id: number;
@@ -95,6 +59,7 @@ interface TransactionRowProps {
   onNoteValueChange: (value: string) => void;
   onDelete: (id: number) => void;
   onCreateRule: (tx: { id: number; description: string; amount: number; date: string; sourceId: number }) => void;
+  style?: React.CSSProperties;
 }
 
 function formatAmount(amount: number): string {
@@ -134,11 +99,12 @@ const TransactionRow = memo(function TransactionRow({
   onNoteValueChange,
   onDelete,
   onCreateRule,
+  style,
 }: TransactionRowProps) {
   const effectiveCategoryId = tx.manualCategoryId ?? tx.categoryId;
 
   return (
-    <TableRow
+    <tr
       data-state={isSelected ? 'selected' : undefined}
       onClick={(e) => {
         const target = e.target as HTMLElement;
@@ -147,27 +113,28 @@ const TransactionRow = memo(function TransactionRow({
         }
         onSelectionClick(tx.id, index, e);
       }}
-      className="cursor-pointer"
+      className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
+      style={style}
     >
-      <TableCell onClick={(e) => e.stopPropagation()}>
+      <td className="p-4 align-middle w-10" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={isSelected}
           onCheckedChange={() => onToggleSelection(tx.id, index)}
         />
-      </TableCell>
-      <TableCell className="text-sm">{formatDate(tx.date)}</TableCell>
-      <TableCell>
+      </td>
+      <td className="p-4 align-middle text-sm w-28">{formatDate(tx.date)}</td>
+      <td className="p-4 align-middle">
         <div className="font-medium">{tx.description}</div>
         {tx.manualCategoryId && tx.categoryId && tx.manualCategoryId !== tx.categoryId && (
           <div className="text-xs text-muted-foreground">
             Auto: {getCategoryName(tx.categoryId, categories)}
           </div>
         )}
-      </TableCell>
-      <TableCell className={`text-right font-medium ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+      </td>
+      <td className={`p-4 align-middle text-right font-medium w-28 ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
         {formatAmount(tx.amount)}
-      </TableCell>
-      <TableCell>
+      </td>
+      <td className="p-4 align-middle w-40">
         <Select
           value={effectiveCategoryId?.toString() || 'none'}
           onValueChange={(v) => onCategoryChange(tx.id, v)}
@@ -200,11 +167,11 @@ const TransactionRow = memo(function TransactionRow({
             ))}
           </SelectContent>
         </Select>
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      </td>
+      <td className="p-4 align-middle text-sm text-muted-foreground w-32">
         {sourceName}
-      </TableCell>
-      <TableCell>
+      </td>
+      <td className="p-4 align-middle w-48">
         {isEditingNote ? (
           <div className="flex items-center gap-1">
             <Input
@@ -248,8 +215,8 @@ const TransactionRow = memo(function TransactionRow({
             <Pencil className="h-3 w-3 text-muted-foreground flex-shrink-0" />
           </div>
         )}
-      </TableCell>
-      <TableCell>
+      </td>
+      <td className="p-4 align-middle w-20">
         <div className="flex items-center gap-1">
           {!effectiveCategoryId && (
             <Button
@@ -277,8 +244,8 @@ const TransactionRow = memo(function TransactionRow({
             <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
           </Button>
         </div>
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   );
 });
 
@@ -521,6 +488,14 @@ export function Transactions() {
     setPage(0);
   };
 
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: transactions?.length ?? 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 53, // Approximate row height
+    overscan: 10,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -655,62 +630,90 @@ export function Transactions() {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <SortableHeader
-                      label="Date"
-                      column="date"
-                      currentSort={filters.sort}
-                      currentOrder={filters.order}
-                      onSort={handleSort}
-                      className="w-28"
-                    />
-                    <TableHead>Description</TableHead>
-                    <SortableHeader
-                      label="Amount"
-                      column="amount"
-                      currentSort={filters.sort}
-                      currentOrder={filters.order}
-                      onSort={handleSort}
-                      className="w-28 text-right"
-                    />
-                    <TableHead className="w-40">Category</TableHead>
-                    <TableHead className="w-32">Source</TableHead>
-                    <TableHead className="w-48">Notes</TableHead>
-                    <TableHead className="w-16"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions?.map((tx, index) => (
-                    <TransactionRow
-                      key={tx.id}
-                      tx={tx}
-                      index={index}
-                      isSelected={selectedIds.has(tx.id)}
-                      isEditingNote={editingNoteId === tx.id}
-                      noteValue={noteValue}
-                      categories={categories}
-                      sourceName={sourceMap.get(tx.sourceId) || 'Unknown'}
-                      onSelectionClick={handleSelectionClick}
-                      onToggleSelection={toggleSelection}
-                      onCategoryChange={handleCategoryChange}
-                      onStartNoteEdit={handleStartNoteEdit}
-                      onSaveNote={handleSaveNote}
-                      onCancelNoteEdit={handleCancelNoteEdit}
-                      onNoteValueChange={handleNoteValueChange}
-                      onDelete={handleDelete}
-                      onCreateRule={handleCreateRule}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="w-full">
+                <table className="w-full caption-bottom text-sm table-fixed">
+                  <thead className="[&_tr]:border-b">
+                    <tr className="border-b transition-colors hover:bg-muted/50">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-10">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </th>
+                      <th
+                        className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-28 cursor-pointer select-none hover:bg-muted/50"
+                        onClick={() => handleSort('date')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Date
+                          {filters.sort === 'date' && (
+                            <span className="text-xs">{filters.order === 'asc' ? '▲' : '▼'}</span>
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Description</th>
+                      <th
+                        className="h-12 px-4 text-right align-middle font-medium text-muted-foreground w-28 cursor-pointer select-none hover:bg-muted/50"
+                        onClick={() => handleSort('amount')}
+                      >
+                        <div className="flex items-center gap-1 justify-end">
+                          Amount
+                          {filters.sort === 'amount' && (
+                            <span className="text-xs">{filters.order === 'asc' ? '▲' : '▼'}</span>
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-40">Category</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-32">Source</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-48">Notes</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-20"></th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div
+                ref={parentRef}
+                className="overflow-auto"
+                style={{ maxHeight: 'calc(100vh - 400px)', minHeight: '400px' }}
+              >
+                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                  <table className="w-full caption-bottom text-sm table-fixed">
+                    <tbody className="[&_tr:last-child]:border-0">
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const tx = transactions![virtualRow.index];
+                        return (
+                          <TransactionRow
+                            key={tx.id}
+                            tx={tx}
+                            index={virtualRow.index}
+                            isSelected={selectedIds.has(tx.id)}
+                            isEditingNote={editingNoteId === tx.id}
+                            noteValue={noteValue}
+                            categories={categories}
+                            sourceName={sourceMap.get(tx.sourceId) || 'Unknown'}
+                            onSelectionClick={handleSelectionClick}
+                            onToggleSelection={toggleSelection}
+                            onCategoryChange={handleCategoryChange}
+                            onStartNoteEdit={handleStartNoteEdit}
+                            onSaveNote={handleSaveNote}
+                            onCancelNoteEdit={handleCancelNoteEdit}
+                            onNoteValueChange={handleNoteValueChange}
+                            onDelete={handleDelete}
+                            onCreateRule={handleCreateRule}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                          />
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-between px-4 py-3 border-t">

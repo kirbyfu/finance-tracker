@@ -22,3 +22,18 @@ Files: packages/web/src/pages/Transactions.tsx
 - Already completed as part of Task 1
 - All handlers already wrapped: toggleSelection, handleSelectionClick, toggleSelectAll, clearSelection
 - PRD updated to mark complete
+
+## Task 4: Add virtualization (PRD 4)
+
+- Installed @tanstack/react-virtual
+- Added useVirtualizer hook with 53px row estimate, 10 row overscan
+- Split header/body into separate tables for scroll containment
+- Header uses fixed table-layout with explicit column widths
+- Body wrapped in scrollable container (max-height: calc(100vh - 400px))
+- Virtual rows use absolute positioning with translateY transform
+- Replaced SortableHeader component with inline header cells
+- Changed TransactionRow from Table components to native tr/td for virtualization compatibility
+- Removed unused Table component imports
+- Type check passes
+
+Files: packages/web/src/pages/Transactions.tsx, packages/web/package.json
