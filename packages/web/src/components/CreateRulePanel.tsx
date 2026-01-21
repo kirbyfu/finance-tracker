@@ -96,6 +96,8 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
     },
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+
   // Auto-generate suggested pattern when transaction changes
   useEffect(() => {
     if (transaction && open) {
@@ -123,24 +125,42 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
     }
   }
 
-  function handleCreateCategory() {
-    if (!newCategoryName.trim()) return;
-    createCategoryMutation.mutate({
-      name: newCategoryName.trim(),
-      color: newCategoryColor,
-      isTransfer: false,
-    });
-  }
+  async function handleSubmit() {
+    if (!pattern) return;
 
-  function handleSubmit() {
-    if (!pattern || !categoryId) return;
+    // If creating new category, need a name
+    if (isCreatingCategory && !newCategoryName.trim()) return;
 
-    createMutation.mutate({
-      pattern,
-      categoryId,
-      sourceId: sourceId || undefined,
-      priority: rules?.length || 0,
-    });
+    // If not creating new category, need an existing one selected
+    if (!isCreatingCategory && !categoryId) return;
+
+    setIsSaving(true);
+
+    try {
+      let finalCategoryId = categoryId;
+
+      // Create category first if needed
+      if (isCreatingCategory) {
+        const newCategory = await createCategoryMutation.mutateAsync({
+          name: newCategoryName.trim(),
+          color: newCategoryColor,
+          isTransfer: false,
+        });
+        finalCategoryId = newCategory.id;
+      }
+
+      // Then create the rule
+      await createMutation.mutateAsync({
+        pattern,
+        categoryId: finalCategoryId!,
+        sourceId: sourceId || undefined,
+        priority: rules?.length || 0,
+      });
+    } catch (error) {
+      console.error('Failed to create rule:', error);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -242,14 +262,6 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
                     ))}
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={handleCreateCategory}
-                  disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
-                  className="w-full"
-                >
-                  {createCategoryMutation.isPending ? 'Creating...' : 'Create Category'}
-                </Button>
               </div>
             )}
           </div>
@@ -284,9 +296,13 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
             <Button
               onClick={handleSubmit}
               className="flex-1"
-              disabled={!pattern || !categoryId || createMutation.isPending}
+              disabled={
+                !pattern ||
+                (isCreatingCategory ? !newCategoryName.trim() : !categoryId) ||
+                isSaving
+              }
             >
-              {createMutation.isPending ? 'Creating...' : 'Create Rule'}
+              {isSaving ? 'Creating...' : 'Create Rule'}
             </Button>
           </div>
         </div>
