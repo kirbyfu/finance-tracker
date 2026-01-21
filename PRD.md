@@ -34,5 +34,5 @@ Frontend changes do not require tests.
 - [x] 3.1 Create backend service to analyze uncategorized descriptions and find common patterns (shared substrings, merchant names)
 - [x] 3.2 Add `rules.getSuggestions` endpoint returning suggested patterns with match counts
 - [x] 3.3 Add "Suggested Rules" section to rules page or uncategorized transactions view
-- [ ] 3.4 One-click accept: prompts for category, creates rule
+- [x] 3.4 One-click accept: prompts for category, creates rule
 
