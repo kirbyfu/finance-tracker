@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,25 @@ interface CreateRulePanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * Generate a suggested regex pattern from a transaction description.
+ * - Escapes regex special characters
+ * - Replaces sequences of digits with \d+
+ * - Trims and handles common patterns
+ */
+function generateSuggestedPattern(description: string): string {
+  // Escape regex special characters
+  let pattern = description.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Replace sequences of digits with \d+ to match similar transactions
+  pattern = pattern.replace(/\d+/g, '\\d+');
+
+  // Collapse multiple spaces into single space matcher
+  pattern = pattern.replace(/\s+/g, '\\s+');
+
+  return pattern;
+}
+
 export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRulePanelProps) {
   const [pattern, setPattern] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -49,6 +68,13 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
       handleClose();
     },
   });
+
+  // Auto-generate suggested pattern when transaction changes
+  useEffect(() => {
+    if (transaction && open) {
+      setPattern(generateSuggestedPattern(transaction.description));
+    }
+  }, [transaction?.id, open]);
 
   function handleClose() {
     setPattern('');
