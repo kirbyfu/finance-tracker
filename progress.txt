@@ -8,3 +8,11 @@
 - Type check passes
 
 Files: packages/web/src/pages/Transactions.tsx
+
+## Task 2: Memoize categoryMap (PRD 2)
+
+- Wrapped categoryMap (line 361) in useMemo with [categories] dependency
+- Was previously recreated on every render, causing unnecessary work
+- Type check passes
+
+Files: packages/web/src/pages/Transactions.tsx

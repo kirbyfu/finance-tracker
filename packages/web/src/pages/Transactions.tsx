@@ -358,7 +358,9 @@ export function Transactions() {
     offset: numericPageSize ? page * numericPageSize : undefined,
   });
 
-  const categoryMap = new Map(categories?.map(c => [c.id, c.name]) || []);
+  const categoryMap = useMemo(() => {
+    return new Map(categories?.map(c => [c.id, c.name]) || []);
+  }, [categories]);
 
   const hasActiveFilters = filters.categoryId || filters.uncategorizedOnly || filters.startDate || filters.endDate;
 
