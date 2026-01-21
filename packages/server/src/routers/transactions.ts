@@ -11,8 +11,8 @@ const listInputSchema = z.object({
   uncategorizedOnly: z.boolean().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  limit: z.number().optional().default(100),
-  offset: z.number().optional().default(0),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
   sort: z.enum(['date', 'amount']).optional().default('date'),
   order: z.enum(['asc', 'desc']).optional().default('desc'),
 });
@@ -21,7 +21,7 @@ export const transactionsRouter = router({
   list: publicProcedure
     .input(listInputSchema.optional())
     .query(async ({ input }) => {
-      const filters = input ?? { limit: 100, offset: 0, sort: 'date' as const, order: 'desc' as const };
+      const filters = input ?? { sort: 'date' as const, order: 'desc' as const };
       const conditions: SQL[] = [];
 
       if (filters.sourceId) conditions.push(eq(transactions.sourceId, filters.sourceId));
@@ -37,22 +37,24 @@ export const transactionsRouter = router({
       const sortColumn = filters.sort === 'amount' ? transactions.amount : transactions.date;
       const orderFn = filters.order === 'asc' ? asc : desc;
 
-      if (conditions.length > 0) {
-        return db
-          .select()
-          .from(transactions)
-          .where(and(...conditions))
-          .orderBy(orderFn(sortColumn))
-          .limit(filters.limit)
-          .offset(filters.offset);
-      }
-
-      return db
+      let query = db
         .select()
         .from(transactions)
         .orderBy(orderFn(sortColumn))
-        .limit(filters.limit)
-        .offset(filters.offset);
+        .$dynamic();
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      if (filters.limit !== undefined) {
+        query = query.limit(filters.limit);
+      }
+      if (filters.offset !== undefined) {
+        query = query.offset(filters.offset);
+      }
+
+      return query;
     }),
 
   import: publicProcedure
