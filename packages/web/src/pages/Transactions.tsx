@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -62,6 +62,225 @@ function SortableHeader({ label, column, currentSort, currentOrder, onSort, clas
     </TableHead>
   );
 }
+
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface TransactionRowProps {
+  tx: {
+    id: number;
+    date: string;
+    description: string;
+    amount: number;
+    categoryId: number | null;
+    manualCategoryId: number | null;
+    sourceId: number;
+    notes: string | null;
+  };
+  index: number;
+  isSelected: boolean;
+  isEditingNote: boolean;
+  noteValue: string;
+  categories: Category[] | undefined;
+  sourceName: string;
+  onSelectionClick: (id: number, index: number, event: React.MouseEvent) => void;
+  onToggleSelection: (id: number, index: number) => void;
+  onCategoryChange: (transactionId: number, categoryId: string) => void;
+  onStartNoteEdit: (transactionId: number, currentNote: string | null) => void;
+  onSaveNote: (transactionId: number) => void;
+  onCancelNoteEdit: () => void;
+  onNoteValueChange: (value: string) => void;
+  onDelete: (id: number) => void;
+  onCreateRule: (tx: { id: number; description: string; amount: number; date: string; sourceId: number }) => void;
+}
+
+function formatAmount(amount: number): string {
+  const formatted = Math.abs(amount).toFixed(2);
+  return amount < 0 ? `-$${formatted}` : `$${formatted}`;
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getCategoryName(categoryId: number | null, categories: Category[] | undefined): string {
+  if (!categoryId) return 'Uncategorized';
+  return categories?.find(c => c.id === categoryId)?.name || 'Unknown';
+}
+
+function getCategoryColor(categoryId: number | null, categories: Category[] | undefined): string {
+  if (!categoryId) return '#6b7280';
+  return categories?.find(c => c.id === categoryId)?.color || '#6b7280';
+}
+
+const TransactionRow = memo(function TransactionRow({
+  tx,
+  index,
+  isSelected,
+  isEditingNote,
+  noteValue,
+  categories,
+  sourceName,
+  onSelectionClick,
+  onToggleSelection,
+  onCategoryChange,
+  onStartNoteEdit,
+  onSaveNote,
+  onCancelNoteEdit,
+  onNoteValueChange,
+  onDelete,
+  onCreateRule,
+}: TransactionRowProps) {
+  const effectiveCategoryId = tx.manualCategoryId ?? tx.categoryId;
+
+  return (
+    <TableRow
+      data-state={isSelected ? 'selected' : undefined}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, select, [role="combobox"], [data-radix-collection-item]')) {
+          return;
+        }
+        onSelectionClick(tx.id, index, e);
+      }}
+      className="cursor-pointer"
+    >
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelection(tx.id, index)}
+        />
+      </TableCell>
+      <TableCell className="text-sm">{formatDate(tx.date)}</TableCell>
+      <TableCell>
+        <div className="font-medium">{tx.description}</div>
+        {tx.manualCategoryId && tx.categoryId && tx.manualCategoryId !== tx.categoryId && (
+          <div className="text-xs text-muted-foreground">
+            Auto: {getCategoryName(tx.categoryId, categories)}
+          </div>
+        )}
+      </TableCell>
+      <TableCell className={`text-right font-medium ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+        {formatAmount(tx.amount)}
+      </TableCell>
+      <TableCell>
+        <Select
+          value={effectiveCategoryId?.toString() || 'none'}
+          onValueChange={(v) => onCategoryChange(tx.id, v)}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: getCategoryColor(effectiveCategoryId, categories) }}
+                />
+                <span className="truncate">{getCategoryName(effectiveCategoryId, categories)}</span>
+              </div>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              <span className="text-muted-foreground">Uncategorized</span>
+            </SelectItem>
+            {categories?.map((category) => (
+              <SelectItem key={category.id} value={category.id.toString()}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  {category.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {sourceName}
+      </TableCell>
+      <TableCell>
+        {isEditingNote ? (
+          <div className="flex items-center gap-1">
+            <Input
+              value={noteValue}
+              onChange={(e) => onNoteValueChange(e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Add note..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onSaveNote(tx.id);
+                if (e.key === 'Escape') onCancelNoteEdit();
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onSaveNote(tx.id)}
+            >
+              <Check className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onCancelNoteEdit}
+            >
+              <X className="h-4 w-4 text-red-600" />
+            </Button>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2 cursor-pointer hover:bg-muted rounded px-2 py-1 -mx-2"
+            onClick={() => onStartNoteEdit(tx.id, tx.notes)}
+          >
+            {tx.notes ? (
+              <span className="text-sm truncate">{tx.notes}</span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Add note...</span>
+            )}
+            <Pencil className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          </div>
+        )}
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          {!effectiveCategoryId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Create Rule"
+              onClick={() => onCreateRule({
+                id: tx.id,
+                description: tx.description,
+                amount: tx.amount,
+                date: tx.date,
+                sourceId: tx.sourceId,
+              })}
+            >
+              <Wand2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onDelete(tx.id)}
+          >
+            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
 
 export function Transactions() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -190,59 +409,46 @@ export function Transactions() {
     onSuccess: () => utils.transactions.list.invalidate(),
   });
 
-  function handleCategoryChange(transactionId: number, categoryId: string) {
+  const handleCategoryChange = useCallback((transactionId: number, categoryId: string) => {
     const manualCategoryId = categoryId === 'none' ? null : parseInt(categoryId);
     updateMutation.mutate({ id: transactionId, manualCategoryId });
-  }
+  }, [updateMutation]);
 
-  function handleStartNoteEdit(transactionId: number, currentNote: string | null) {
+  const handleStartNoteEdit = useCallback((transactionId: number, currentNote: string | null) => {
     setEditingNoteId(transactionId);
     setNoteValue(currentNote || '');
-  }
+  }, []);
 
-  function handleSaveNote(transactionId: number) {
+  const handleSaveNote = useCallback((transactionId: number) => {
     updateMutation.mutate({ id: transactionId, notes: noteValue || null });
-  }
+  }, [updateMutation, noteValue]);
 
-  function handleCancelNoteEdit() {
+  const handleCancelNoteEdit = useCallback(() => {
     setEditingNoteId(null);
     setNoteValue('');
-  }
+  }, []);
 
-  function formatAmount(amount: number): string {
-    const formatted = Math.abs(amount).toFixed(2);
-    return amount < 0 ? `-$${formatted}` : `$${formatted}`;
-  }
+  const handleNoteValueChange = useCallback((value: string) => {
+    setNoteValue(value);
+  }, []);
 
-  function formatDate(dateStr: string): string {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
+  const handleDelete = useCallback((id: number) => {
+    setDeleteId(id);
+  }, []);
 
-  function getSourceName(sourceId: number): string {
-    return sources?.find(s => s.id === sourceId)?.name || 'Unknown';
-  }
+  const handleCreateRule = useCallback((tx: { id: number; description: string; amount: number; date: string; sourceId: number }) => {
+    setRuleTransaction(tx);
+  }, []);
 
-  function getCategoryName(categoryId: number | null): string {
-    if (!categoryId) return 'Uncategorized';
-    return categories?.find(c => c.id === categoryId)?.name || 'Unknown';
-  }
+  const sourceMap = useMemo(() => {
+    return new Map(sources?.map(s => [s.id, s.name]) || []);
+  }, [sources]);
 
-  function getCategoryColor(categoryId: number | null): string {
-    if (!categoryId) return '#6b7280';
-    return categories?.find(c => c.id === categoryId)?.color || '#6b7280';
-  }
-
-  function getEffectiveCategoryId(tx: NonNullable<typeof transactions>[number]): number | null {
-    return tx.manualCategoryId ?? tx.categoryId;
-  }
-
-  function handleSelectionClick(id: number, index: number, event: React.MouseEvent) {
+  const handleSelectionClick = useCallback((id: number, index: number, event: React.MouseEvent) => {
     const isShiftKey = event.shiftKey;
     const isCtrlKey = event.ctrlKey || event.metaKey;
 
     if (isShiftKey && lastClickedIndexRef.current !== null && transactions) {
-      // Range selection: select all between last clicked and current
       const start = Math.min(lastClickedIndexRef.current, index);
       const end = Math.max(lastClickedIndexRef.current, index);
       const rangeIds = transactions.slice(start, end + 1).map(tx => tx.id);
@@ -253,7 +459,6 @@ export function Transactions() {
         return next;
       });
     } else if (isCtrlKey) {
-      // Toggle single selection without clearing others
       setSelectedIds(prev => {
         const next = new Set(prev);
         if (next.has(id)) {
@@ -265,14 +470,12 @@ export function Transactions() {
       });
       lastClickedIndexRef.current = index;
     } else {
-      // Regular click: clear others and select only this one
       setSelectedIds(new Set([id]));
       lastClickedIndexRef.current = index;
     }
-  }
+  }, [transactions]);
 
-  function toggleSelection(id: number, index: number) {
-    // Used by checkbox - always toggle without modifier key behavior
+  const toggleSelection = useCallback((id: number, index: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -283,9 +486,9 @@ export function Transactions() {
       return next;
     });
     lastClickedIndexRef.current = index;
-  }
+  }, []);
 
-  function toggleSelectAll() {
+  const toggleSelectAll = useCallback(() => {
     if (!transactions) return;
     const allIds = transactions.map(tx => tx.id);
     const allSelected = allIds.every(id => selectedIds.has(id));
@@ -294,11 +497,11 @@ export function Transactions() {
     } else {
       setSelectedIds(new Set(allIds));
     }
-  }
+  }, [transactions, selectedIds]);
 
-  function clearSelection() {
+  const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
-  }
+  }, []);
 
   const selectionTotal = useMemo(() => {
     if (!transactions || selectedIds.size === 0) return 0;
@@ -483,155 +686,27 @@ export function Transactions() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions?.map((tx, index) => {
-                    const effectiveCategoryId = getEffectiveCategoryId(tx);
-                    const isSelected = selectedIds.has(tx.id);
-                    return (
-                      <TableRow
-                        key={tx.id}
-                        data-state={isSelected ? 'selected' : undefined}
-                        onClick={(e) => {
-                          // Only handle row click if not clicking on interactive elements
-                          const target = e.target as HTMLElement;
-                          if (target.closest('button, input, select, [role="combobox"], [data-radix-collection-item]')) {
-                            return;
-                          }
-                          handleSelectionClick(tx.id, index, e);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleSelection(tx.id, index)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-sm">{formatDate(tx.date)}</TableCell>
-                        <TableCell>
-                          <div className="font-medium">{tx.description}</div>
-                          {tx.manualCategoryId && tx.categoryId && tx.manualCategoryId !== tx.categoryId && (
-                            <div className="text-xs text-muted-foreground">
-                              Auto: {getCategoryName(tx.categoryId)}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {formatAmount(tx.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={effectiveCategoryId?.toString() || 'none'}
-                            onValueChange={(v) => handleCategoryChange(tx.id, v)}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-2 h-2 rounded-full"
-                                    style={{ backgroundColor: getCategoryColor(effectiveCategoryId) }}
-                                  />
-                                  <span className="truncate">{getCategoryName(effectiveCategoryId)}</span>
-                                </div>
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">
-                                <span className="text-muted-foreground">Uncategorized</span>
-                              </SelectItem>
-                              {categories?.map((category) => (
-                                <SelectItem key={category.id} value={category.id.toString()}>
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-3 h-3 rounded-full"
-                                      style={{ backgroundColor: category.color }}
-                                    />
-                                    {category.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {getSourceName(tx.sourceId)}
-                        </TableCell>
-                        <TableCell>
-                          {editingNoteId === tx.id ? (
-                            <div className="flex items-center gap-1">
-                              <Input
-                                value={noteValue}
-                                onChange={(e) => setNoteValue(e.target.value)}
-                                className="h-8 text-sm"
-                                placeholder="Add note..."
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSaveNote(tx.id);
-                                  if (e.key === 'Escape') handleCancelNoteEdit();
-                                }}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleSaveNote(tx.id)}
-                              >
-                                <Check className="h-4 w-4 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={handleCancelNoteEdit}
-                              >
-                                <X className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div
-                              className="flex items-center gap-2 cursor-pointer hover:bg-muted rounded px-2 py-1 -mx-2"
-                              onClick={() => handleStartNoteEdit(tx.id, tx.notes)}
-                            >
-                              {tx.notes ? (
-                                <span className="text-sm truncate">{tx.notes}</span>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">Add note...</span>
-                              )}
-                              <Pencil className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {!effectiveCategoryId && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Create Rule"
-                                onClick={() => setRuleTransaction({
-                                  id: tx.id,
-                                  description: tx.description,
-                                  amount: tx.amount,
-                                  date: tx.date,
-                                  sourceId: tx.sourceId,
-                                })}
-                              >
-                                <Wand2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => setDeleteId(tx.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {transactions?.map((tx, index) => (
+                    <TransactionRow
+                      key={tx.id}
+                      tx={tx}
+                      index={index}
+                      isSelected={selectedIds.has(tx.id)}
+                      isEditingNote={editingNoteId === tx.id}
+                      noteValue={noteValue}
+                      categories={categories}
+                      sourceName={sourceMap.get(tx.sourceId) || 'Unknown'}
+                      onSelectionClick={handleSelectionClick}
+                      onToggleSelection={toggleSelection}
+                      onCategoryChange={handleCategoryChange}
+                      onStartNoteEdit={handleStartNoteEdit}
+                      onSaveNote={handleSaveNote}
+                      onCancelNoteEdit={handleCancelNoteEdit}
+                      onNoteValueChange={handleNoteValueChange}
+                      onDelete={handleDelete}
+                      onCreateRule={handleCreateRule}
+                    />
+                  ))}
                 </TableBody>
               </Table>
 

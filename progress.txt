@@ -1,0 +1,10 @@
+## Task 1: Extract TransactionRow component (PRD 1)
+
+- Extracted 150-line inline TableRow into memoized TransactionRow component
+- Moved formatAmount, formatDate, getCategoryName, getCategoryColor to module scope
+- Wrapped handlers in useCallback: handleCategoryChange, handleStartNoteEdit, handleSaveNote, handleCancelNoteEdit, handleNoteValueChange, handleDelete, handleCreateRule, handleSelectionClick, toggleSelection
+- Added sourceMap useMemo for source name lookup
+- Props use primitives (isSelected, isEditingNote, sourceName) or stable refs (callbacks)
+- Type check passes
+
+Files: packages/web/src/pages/Transactions.tsx
