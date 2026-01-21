@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, Wand2 } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { CreateRulePanel } from '@/components/CreateRulePanel';
 
 const PAGE_SIZE_OPTIONS = [
   { value: '100', label: '100' },
@@ -109,6 +110,13 @@ export function Transactions() {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteValue, setNoteValue] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [ruleTransaction, setRuleTransaction] = useState<{
+    id: number;
+    description: string;
+    amount: number;
+    date: string;
+    sourceId: number;
+  } | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -500,6 +508,13 @@ export function Transactions() {
                                 size="icon"
                                 className="h-8 w-8"
                                 title="Create Rule"
+                                onClick={() => setRuleTransaction({
+                                  id: tx.id,
+                                  description: tx.description,
+                                  amount: tx.amount,
+                                  date: tx.date,
+                                  sourceId: tx.sourceId,
+                                })}
                               >
                                 <Wand2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
                               </Button>
@@ -589,6 +604,12 @@ export function Transactions() {
         title="Delete Transaction"
         description="Are you sure you want to delete this transaction? This action cannot be undone."
         isDeleting={deleteMutation.isPending}
+      />
+
+      <CreateRulePanel
+        transaction={ruleTransaction}
+        open={ruleTransaction !== null}
+        onOpenChange={(open) => !open && setRuleTransaction(null)}
       />
     </div>
   );
