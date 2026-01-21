@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -119,6 +119,7 @@ export function Transactions() {
     sourceId: number;
   } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const lastClickedIndexRef = useRef<number | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -236,7 +237,42 @@ export function Transactions() {
     return tx.manualCategoryId ?? tx.categoryId;
   }
 
-  function toggleSelection(id: number) {
+  function handleSelectionClick(id: number, index: number, event: React.MouseEvent) {
+    const isShiftKey = event.shiftKey;
+    const isCtrlKey = event.ctrlKey || event.metaKey;
+
+    if (isShiftKey && lastClickedIndexRef.current !== null && transactions) {
+      // Range selection: select all between last clicked and current
+      const start = Math.min(lastClickedIndexRef.current, index);
+      const end = Math.max(lastClickedIndexRef.current, index);
+      const rangeIds = transactions.slice(start, end + 1).map(tx => tx.id);
+
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        rangeIds.forEach(rangeId => next.add(rangeId));
+        return next;
+      });
+    } else if (isCtrlKey) {
+      // Toggle single selection without clearing others
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+      lastClickedIndexRef.current = index;
+    } else {
+      // Regular click: clear others and select only this one
+      setSelectedIds(new Set([id]));
+      lastClickedIndexRef.current = index;
+    }
+  }
+
+  function toggleSelection(id: number, index: number) {
+    // Used by checkbox - always toggle without modifier key behavior
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -246,6 +282,7 @@ export function Transactions() {
       }
       return next;
     });
+    lastClickedIndexRef.current = index;
   }
 
   function toggleSelectAll() {
@@ -446,15 +483,27 @@ export function Transactions() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions?.map((tx) => {
+                  {transactions?.map((tx, index) => {
                     const effectiveCategoryId = getEffectiveCategoryId(tx);
                     const isSelected = selectedIds.has(tx.id);
                     return (
-                      <TableRow key={tx.id} data-state={isSelected ? 'selected' : undefined}>
-                        <TableCell>
+                      <TableRow
+                        key={tx.id}
+                        data-state={isSelected ? 'selected' : undefined}
+                        onClick={(e) => {
+                          // Only handle row click if not clicking on interactive elements
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button, input, select, [role="combobox"], [data-radix-collection-item]')) {
+                            return;
+                          }
+                          handleSelectionClick(tx.id, index, e);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => toggleSelection(tx.id)}
+                            onCheckedChange={() => toggleSelection(tx.id, index)}
                           />
                         </TableCell>
                         <TableCell className="text-sm">{formatDate(tx.date)}</TableCell>
