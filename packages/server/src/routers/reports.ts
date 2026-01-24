@@ -95,6 +95,27 @@ export const reportsRouter = router({
 
       return years;
     }),
+
+  multiMonth: publicProcedure
+    .input(z.object({
+      months: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const now = new Date();
+      const result: { year: number; month: number; breakdown: CategorySummary[] }[] = [];
+
+      for (let i = input.months - 1; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endDate = getLastDayOfMonth(year, month);
+        const breakdown = await getBreakdown(startDate, endDate);
+        result.push({ year, month, breakdown });
+      }
+
+      return result;
+    }),
 });
 
 async function getBreakdown(startDate: string, endDate: string): Promise<CategorySummary[]> {

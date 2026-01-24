@@ -7,6 +7,7 @@ import { Transactions } from '@/pages/Transactions';
 import { Rules } from '@/pages/Rules';
 import { Reports } from '@/pages/Reports';
 import { MultiYearComparison } from '@/pages/MultiYearComparison';
+import { MultiMonthComparison } from '@/pages/MultiMonthComparison';
 import { Dashboard } from '@/pages/Dashboard';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/import" element={<Import />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/years" element={<MultiYearComparison />} />
+          <Route path="/reports/months" element={<MultiMonthComparison />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/rules" element={<Rules />} />
           <Route path="/sources" element={<Sources />} />

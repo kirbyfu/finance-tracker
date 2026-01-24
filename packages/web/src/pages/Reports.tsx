@@ -295,12 +295,20 @@ export function Reports() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Reports</h1>
-        <Link to="/reports/years">
-          <Button variant="outline">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Multi-Year Comparison
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/reports/months">
+            <Button variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Multi-Month
+            </Button>
+          </Link>
+          <Link to="/reports/years">
+            <Button variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Multi-Year
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Tabs value={view} onValueChange={handleTabChange} className="space-y-4">
