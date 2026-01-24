@@ -6,8 +6,20 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+# jq filter to extract streaming text from assistant messages
+stream_text='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | gsub("\n"; "\r\n") | . + "\r\n\n"'
+
+# jq filter to extract final result
+final_result='select(.type == "result").result // empty'
+
 for ((i=1; i<=$1; i++)); do
-  result=$(claude --dangerously-skip-permissions -p "@PRD.md @progress.txt \
+  tmpfile=$(mktemp)
+  trap "rm -f $tmpfile" EXIT
+
+  claude --dangerously-skip-permissions \
+    --verbose \
+    --output-format stream-json \
+    -p "@PRD.md @progress.txt \
   1. Find the highest-priority task and implement it. \
   2. Run your tests and type checks. \
   3. Update the PRD with what was done. \
@@ -15,7 +27,7 @@ for ((i=1; i<=$1; i++)); do
   5. Commit your changes. \
   ONLY WORK ON A SINGLE TASK. \
   If the PRD is complete, output <promise>COMPLETE</promise>.
-  
+
   When choosing the next task, prioritize in this order: \
   1. Architectural decisions and core abstractions \
   2. Integration points between modules \
@@ -30,9 +42,12 @@ for ((i=1; i<=$1; i++)); do
   - Files changed \
   - Any blockers or notes for next iteration \
   Keep entries concise. Sacrifice grammar for the sake of concision. This file helps future iterations skip exploration \
-")
+" \
+  | grep --line-buffered '^{' \
+  | tee "$tmpfile" \
+  | jq --unbuffered -rj "$stream_text"
 
-  echo "$result"
+  result=$(jq -r "$final_result" "$tmpfile")
 
   if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then
     echo "PRD complete after $i iterations."
