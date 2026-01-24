@@ -156,3 +156,22 @@ Files changed:
 - packages/web/src/components/CreateRulePanel.tsx
 
 All 50 tests pass. Types check.
+
+## Task 8: Hook - Compute cleaned_description on transaction insert - DONE
+
+Updated transactions.import mutation to populate cleaned_description on insert.
+
+Changes:
+- Import getPhrasesForSource, cleanDescription from noise-phrases service
+- Fetch noise phrases once before loop (global + source-specific)
+- Compute cleanedDescription for each transaction using cleanDescription()
+- Include cleanedDescription in insert values
+
+Key decisions:
+- Fetch phrases once per import batch for efficiency
+- Use existing getPhrasesForSource() which returns global + source-specific phrases
+
+Files changed:
+- packages/server/src/routers/transactions.ts
+
+All 50 tests pass. Types check.

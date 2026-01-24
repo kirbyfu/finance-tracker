@@ -168,7 +168,7 @@ Update CreateRulePanel.tsx:
 
 ---
 
-### Task 8: Hook - Compute cleaned_description on transaction insert
+### Task 8: Hook - Compute cleaned_description on transaction insert ✅ DONE
 **Priority: 4 (Feature)**
 
 When transactions are imported/created, compute cleaned_description using NoisePhrasesService.cleanDescription().
@@ -176,6 +176,8 @@ When transactions are imported/created, compute cleaned_description using NoiseP
 Find where transactions are inserted (likely in import flow) and add call.
 
 **Done when:** New transactions automatically get cleaned_description populated.
+
+**Completed:** Updated transactions.import mutation to fetch noise phrases via getPhrasesForSource(sourceId) and apply cleanDescription() to each transaction before insert. Types check, 50 tests pass.
 
 ---
 

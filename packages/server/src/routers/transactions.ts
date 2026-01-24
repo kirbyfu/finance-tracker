@@ -4,6 +4,7 @@ import { db, transactions, sources } from '../db';
 import { eq, isNull, desc, asc, and, gte, lte, SQL } from 'drizzle-orm';
 import { parseCSV } from '../services/csv-parser';
 import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
+import { getPhrasesForSource, cleanDescription } from '../services/noise-phrases';
 
 const listInputSchema = z.object({
   sourceId: z.number().optional(),
@@ -69,6 +70,9 @@ export const transactionsRouter = router({
       const columnMapping = JSON.parse(source.columnMapping);
       const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
 
+      // Fetch noise phrases for this source (global + source-specific)
+      const noisePhrases = await getPhrasesForSource(input.sourceId);
+
       let imported = 0;
       let uncategorized = 0;
 
@@ -76,6 +80,9 @@ export const transactionsRouter = router({
         // Categorize
         const categoryId = await categorizeTransaction(tx.description, input.sourceId);
         if (!categoryId) uncategorized++;
+
+        // Compute cleaned description
+        const cleanedDescription = cleanDescription(tx.description, noisePhrases);
 
         // Insert
         await db.insert(transactions).values({
@@ -85,6 +92,7 @@ export const transactionsRouter = router({
           description: tx.description,
           balance: tx.balance,
           categoryId,
+          cleanedDescription,
         });
 
         imported++;
