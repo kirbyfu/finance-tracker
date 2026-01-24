@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { db, transactions, sources } from '../db';
-import { eq, isNull, desc, asc, and, gte, lte, like, SQL } from 'drizzle-orm';
+import { eq, isNull, desc, asc, and, or, gte, lte, like, SQL } from 'drizzle-orm';
 import { parseCSV } from '../services/csv-parser';
 import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
 import { getPhrasesForSource, cleanDescription } from '../services/noise-phrases';
@@ -27,7 +27,13 @@ export const transactionsRouter = router({
       const conditions: SQL[] = [];
 
       if (filters.sourceId) conditions.push(eq(transactions.sourceId, filters.sourceId));
-      if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
+      if (filters.categoryId) {
+        // Use effective category: manualCategoryId takes precedence over categoryId
+        conditions.push(or(
+          eq(transactions.manualCategoryId, filters.categoryId),
+          and(isNull(transactions.manualCategoryId), eq(transactions.categoryId, filters.categoryId))
+        )!);
+      }
       if (filters.uncategorizedOnly) {
         conditions.push(isNull(transactions.categoryId));
         conditions.push(isNull(transactions.manualCategoryId));
