@@ -30,6 +30,19 @@ function formatCurrency(amount: number): string {
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+function computeRowStats(values: number[]): { mean: number; stdDev: number } {
+  const nonZero = values.filter(v => v !== 0);
+  if (nonZero.length < 2) return { mean: 0, stdDev: 0 };
+  const mean = nonZero.reduce((a, b) => a + b, 0) / nonZero.length;
+  const variance = nonZero.reduce((sum, v) => sum + (v - mean) ** 2, 0) / nonZero.length;
+  return { mean, stdDev: Math.sqrt(variance) };
+}
+
+function isOutlier(value: number, mean: number, stdDev: number): boolean {
+  if (value === 0 || stdDev === 0) return false;
+  return Math.abs(value - mean) > 1.5 * stdDev;
+}
+
 function buildTransactionUrl(
   categoryId: number | null,
   period: { year: number; month?: number }
@@ -77,8 +90,8 @@ function MonthsView() {
   const [monthCount, setMonthCount] = useState(12);
   const { data, isLoading } = trpc.reports.multiMonth.useQuery({ months: monthCount });
 
-  const { monthKeys, categoryRows, netByMonth } = useMemo(() => {
-    if (!data) return { monthKeys: [], categoryRows: [], netByMonth: new Map<string, number>() };
+  const { monthKeys, categoryRows, netByMonth, rowStats } = useMemo(() => {
+    if (!data) return { monthKeys: [], categoryRows: [], netByMonth: new Map<string, number>(), rowStats: new Map<number | null, { mean: number; stdDev: number }>() };
 
     const keys = data.map(d => `${d.year}-${d.month}`);
     const rowMap = new Map<number | null, MonthCategoryRow>();
@@ -107,16 +120,20 @@ function MonthsView() {
     }
 
     const rows = Array.from(rowMap.values());
+    const statsMap = new Map<number | null, { mean: number; stdDev: number }>();
     for (const row of rows) {
       let totalSum = 0;
+      const values: number[] = [];
       for (const amount of row.monthTotals.values()) {
         totalSum += amount;
+        values.push(amount);
       }
       row.sortValue = totalSum > 0 ? 1000000000 + totalSum : totalSum;
+      statsMap.set(row.categoryId, computeRowStats(values));
     }
     rows.sort((a, b) => b.sortValue - a.sortValue);
 
-    return { monthKeys: keys, categoryRows: rows, netByMonth: netMap };
+    return { monthKeys: keys, categoryRows: rows, netByMonth: netMap, rowStats: statsMap };
   }, [data]);
 
   const formatMonthHeader = (key: string) => {
@@ -186,11 +203,14 @@ function MonthsView() {
                       {monthKeys.map(key => {
                         const amount = row.monthTotals.get(key) || 0;
                         const period = parseMonthKey(key);
+                        const stats = rowStats.get(row.categoryId);
+                        const outlier = stats && isOutlier(amount, stats.mean, stats.stdDev);
                         return (
-                          <TableCell key={key} className="p-0">
+                          <TableCell key={key} className={`p-0 ${outlier ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}>
                             <Link
                               to={buildTransactionUrl(row.categoryId, period)}
                               className={`block w-full h-full px-4 py-2 text-right hover:underline ${amount < 0 ? 'text-red-600' : amount > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
+                              title={outlier ? `${Math.abs(((amount - stats!.mean) / stats!.stdDev)).toFixed(1)}σ from avg (${formatCurrency(stats!.mean)})` : undefined}
                             >
                               {amount !== 0 ? formatCurrency(amount) : '-'}
                             </Link>
@@ -227,8 +247,8 @@ function YearsView() {
   const [yearCount, setYearCount] = useState(5);
   const { data, isLoading } = trpc.reports.multiYear.useQuery({ years: yearCount });
 
-  const { years, categoryRows, netByYear } = useMemo(() => {
-    if (!data) return { years: [], categoryRows: [], netByYear: new Map<number, number>() };
+  const { years, categoryRows, netByYear, rowStats } = useMemo(() => {
+    if (!data) return { years: [], categoryRows: [], netByYear: new Map<number, number>(), rowStats: new Map<number | null, { mean: number; stdDev: number }>() };
 
     const yearsArr = data.map(d => d.year);
     const rowMap = new Map<number | null, YearCategoryRow>();
@@ -255,16 +275,20 @@ function YearsView() {
     }
 
     const rows = Array.from(rowMap.values());
+    const statsMap = new Map<number | null, { mean: number; stdDev: number }>();
     for (const row of rows) {
       let totalSum = 0;
+      const values: number[] = [];
       for (const amount of row.yearTotals.values()) {
         totalSum += amount;
+        values.push(amount);
       }
       row.sortValue = totalSum > 0 ? 1000000000 + totalSum : totalSum;
+      statsMap.set(row.categoryId, computeRowStats(values));
     }
     rows.sort((a, b) => b.sortValue - a.sortValue);
 
-    return { years: yearsArr, categoryRows: rows, netByYear: netMap };
+    return { years: yearsArr, categoryRows: rows, netByYear: netMap, rowStats: statsMap };
   }, [data]);
 
   return (
@@ -320,11 +344,14 @@ function YearsView() {
                       </TableCell>
                       {years.map(year => {
                         const amount = row.yearTotals.get(year) || 0;
+                        const stats = rowStats.get(row.categoryId);
+                        const outlier = stats && isOutlier(amount, stats.mean, stats.stdDev);
                         return (
-                          <TableCell key={year} className="p-0">
+                          <TableCell key={year} className={`p-0 ${outlier ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}>
                             <Link
                               to={buildTransactionUrl(row.categoryId, { year })}
                               className={`block w-full h-full px-4 py-2 text-right hover:underline ${amount < 0 ? 'text-red-600' : amount > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
+                              title={outlier ? `${Math.abs(((amount - stats!.mean) / stats!.stdDev)).toFixed(1)}σ from avg (${formatCurrency(stats!.mean)})` : undefined}
                             >
                               {amount !== 0 ? formatCurrency(amount) : '-'}
                             </Link>
