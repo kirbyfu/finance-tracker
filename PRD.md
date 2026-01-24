@@ -116,7 +116,7 @@ Add to main router.
 
 ---
 
-### Task 5: API - Update rules.getSuggestions
+### Task 5: API - Update rules.getSuggestions ✅ DONE
 **Priority: 2 (Integration)**
 
 Modify `rules.getSuggestions` to:
@@ -130,6 +130,8 @@ Modify `rules.getSuggestions` to:
 ```
 
 **Done when:** Endpoint updated, returns multiple patterns + detected noise.
+
+**Completed:** Endpoint updated to use getSuggestions() from pattern-suggester. Accepts optional transactionId. Frontend updated to use suggestionsData.patterns. Types check, 50 tests pass.
 
 ---
 

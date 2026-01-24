@@ -48,7 +48,8 @@ export function Rules() {
   const { data: rules, isLoading } = trpc.rules.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
   const { data: sources } = trpc.sources.list.useQuery();
-  const { data: suggestions } = trpc.rules.getSuggestions.useQuery();
+  const { data: suggestionsData } = trpc.rules.getSuggestions.useQuery();
+  const suggestions = suggestionsData?.patterns;
   const { data: testResults } = trpc.rules.test.useQuery(
     { pattern: testPattern },
     { enabled: testPattern.length > 0 && isTestOpen }

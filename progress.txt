@@ -90,3 +90,19 @@ Files changed:
 - packages/server/src/routers/index.ts
 
 All 50 tests pass. Types check.
+
+## Task 5: API - Update rules.getSuggestions - DONE
+
+Updated rules.getSuggestions endpoint to use new PatternSuggesterService API.
+
+Changes:
+- Import getSuggestions instead of getSuggestedPatterns
+- Accept optional transactionId param via z.object({ transactionId: z.number().optional() }).optional()
+- Return { patterns, detectedNoise } structure
+- Updated Rules.tsx to use suggestionsData.patterns instead of suggestions array
+
+Files changed:
+- packages/server/src/routers/rules.ts
+- packages/web/src/pages/Rules.tsx
+
+All 50 tests pass. Types check.

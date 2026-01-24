@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { db, rules, transactions } from '../db';
 import { eq, asc } from 'drizzle-orm';
-import { getSuggestedPatterns } from '../services/pattern-suggester';
+import { getSuggestions } from '../services/pattern-suggester';
 
 export const rulesRouter = router({
   list: publicProcedure.query(async () => {
@@ -59,7 +59,9 @@ export const rulesRouter = router({
       return allTransactions.filter(t => regex.test(t.description));
     }),
 
-  getSuggestions: publicProcedure.query(async () => {
-    return getSuggestedPatterns();
-  }),
+  getSuggestions: publicProcedure
+    .input(z.object({ transactionId: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      return getSuggestions(input?.transactionId);
+    }),
 });
