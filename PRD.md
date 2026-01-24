@@ -96,7 +96,7 @@ Remove old strategies (merchant prefix, common substring, normalized grouping).
 
 ---
 
-### Task 4: API - noisePhrases router
+### Task 4: API - noisePhrases router ✅ DONE
 **Priority: 2 (Integration)**
 
 Create `packages/server/src/routers/noise-phrases.ts`:
@@ -111,6 +111,8 @@ noisePhrases.getSuggestions() → { phrase, categoryCount, sampleCategories }[]
 Add to main router.
 
 **Done when:** Endpoints created, integrated into tRPC router, tested via API.
+
+**Completed:** Router created with all 4 endpoints. Added to appRouter as `noisePhrases`. Types check, 50 tests pass.
 
 ---
 

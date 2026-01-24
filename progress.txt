@@ -72,3 +72,21 @@ Files changed:
 - packages/server/src/services/noise-phrases.ts (removed unused imports)
 
 All 50 tests pass (8 new). Types check.
+
+## Task 4: API - noisePhrases router - DONE
+
+Created tRPC router exposing NoisePhrasesService.
+
+Endpoints:
+- noisePhrases.list() - returns all noise phrases
+- noisePhrases.create({ phrase, sourceId? }) - creates normalized phrase
+- noisePhrases.delete({ id }) - removes phrase
+- noisePhrases.getSuggestions() - returns noise phrase candidates
+
+Added noisePhrasesRouter to appRouter in index.ts.
+
+Files changed:
+- packages/server/src/routers/noise-phrases.ts (new)
+- packages/server/src/routers/index.ts
+
+All 50 tests pass. Types check.
