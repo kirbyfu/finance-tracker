@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { db, transactions, sources } from '../db';
-import { eq, isNull, desc, asc, and, gte, lte, SQL } from 'drizzle-orm';
+import { eq, isNull, desc, asc, and, gte, lte, like, SQL } from 'drizzle-orm';
 import { parseCSV } from '../services/csv-parser';
 import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
 import { getPhrasesForSource, cleanDescription } from '../services/noise-phrases';
@@ -12,6 +12,7 @@ const listInputSchema = z.object({
   uncategorizedOnly: z.boolean().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  search: z.string().optional(),
   limit: z.number().optional(),
   offset: z.number().optional(),
   sort: z.enum(['date', 'amount']).optional().default('date'),
@@ -33,6 +34,7 @@ export const transactionsRouter = router({
       }
       if (filters.startDate) conditions.push(gte(transactions.date, filters.startDate));
       if (filters.endDate) conditions.push(lte(transactions.date, filters.endDate));
+      if (filters.search) conditions.push(like(transactions.description, `%${filters.search.toLowerCase()}%`));
 
       // Determine sort column and direction
       const sortColumn = filters.sort === 'amount' ? transactions.amount : transactions.date;
@@ -118,6 +120,19 @@ export const transactionsRouter = router({
     .mutation(async ({ input }) => {
       await db.delete(transactions).where(eq(transactions.id, input.id));
       return { success: true };
+    }),
+
+  bulkUpdateCategory: publicProcedure
+    .input(z.object({
+      ids: z.array(z.number()),
+      manualCategoryId: z.number().nullable(),
+    }))
+    .mutation(async ({ input }) => {
+      const { ids, manualCategoryId } = input;
+      for (const id of ids) {
+        await db.update(transactions).set({ manualCategoryId }).where(eq(transactions.id, id));
+      }
+      return { updated: ids.length };
     }),
 
   uncategorized: publicProcedure.query(async () => {

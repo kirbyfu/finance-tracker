@@ -3,8 +3,9 @@ import { db, transactions } from '../db';
 
 export interface PatternSuggestion {
   pattern: string;
-  matchCount: number;
-  sampleDescriptions: string[];
+  uncategorizedCount: number;
+  categorizedCount: number;
+  sampleDescriptions: string[]; // uncategorized first, then categorized
 }
 
 export interface DetectedNoise {
@@ -56,48 +57,86 @@ export async function getSuggestions(transactionId?: number): Promise<Suggestion
     }
   }
 
-  // Get all cleaned descriptions for matching
+  // Get all cleaned descriptions for matching, with category info
   const allTxs = await db
-    .select({ cleanedDescription: transactions.cleanedDescription })
+    .select({
+      cleanedDescription: transactions.cleanedDescription,
+      categoryId: transactions.categoryId,
+      manualCategoryId: transactions.manualCategoryId,
+    })
     .from(transactions);
 
-  const allCleanedDescriptions = allTxs
-    .map((t) => t.cleanedDescription)
-    .filter((d): d is string => !!d);
+  const txsWithDescriptions = allTxs.filter(
+    (t): t is typeof t & { cleanedDescription: string } => !!t.cleanedDescription
+  );
 
   // Extract n-grams from target descriptions
-  const ngramCounts = new Map<string, { count: number; samples: Set<string> }>();
+  const ngramCounts = new Map<
+    string,
+    {
+      uncategorizedCount: number;
+      categorizedCount: number;
+      uncategorizedSamples: Set<string>;
+      categorizedSamples: Set<string>;
+    }
+  >();
 
   for (const desc of targetDescriptions) {
     const ngrams = extractNgrams(desc, 1, 4);
     for (const ngram of ngrams) {
       if (!ngramCounts.has(ngram)) {
-        // Count matches across all cleaned descriptions
-        const matches = allCleanedDescriptions.filter((d) =>
-          d.toLowerCase().includes(ngram)
-        );
-        if (matches.length >= 2) {
+        // Count matches across all cleaned descriptions, separating by category status
+        const uncategorizedMatches: string[] = [];
+        const categorizedMatches: string[] = [];
+
+        for (const tx of txsWithDescriptions) {
+          if (tx.cleanedDescription.toLowerCase().includes(ngram)) {
+            const isCategorized = tx.categoryId !== null || tx.manualCategoryId !== null;
+            if (isCategorized) {
+              categorizedMatches.push(tx.cleanedDescription);
+            } else {
+              uncategorizedMatches.push(tx.cleanedDescription);
+            }
+          }
+        }
+
+        const totalMatches = uncategorizedMatches.length + categorizedMatches.length;
+        if (totalMatches >= 2) {
           ngramCounts.set(ngram, {
-            count: matches.length,
-            samples: new Set(matches.slice(0, 3)),
+            uncategorizedCount: uncategorizedMatches.length,
+            categorizedCount: categorizedMatches.length,
+            uncategorizedSamples: new Set(uncategorizedMatches.slice(0, 5)),
+            categorizedSamples: new Set(categorizedMatches.slice(0, 5)),
           });
         }
       }
     }
   }
 
-  // Convert to patterns, sort by match count
+  // Convert to patterns, sort by uncategorized count (primary), then total
   const patterns: PatternSuggestion[] = [];
   for (const [ngram, data] of ngramCounts) {
+    // Combine samples: uncategorized first, then categorized (up to 5 total)
+    const uncatSamples = Array.from(data.uncategorizedSamples);
+    const catSamples = Array.from(data.categorizedSamples);
+    const combinedSamples = [...uncatSamples, ...catSamples].slice(0, 5);
+
     patterns.push({
       pattern: ngramToRegex(ngram),
-      matchCount: data.count,
-      sampleDescriptions: Array.from(data.samples),
+      uncategorizedCount: data.uncategorizedCount,
+      categorizedCount: data.categorizedCount,
+      sampleDescriptions: combinedSamples,
     });
   }
 
-  patterns.sort((a, b) => b.matchCount - a.matchCount);
-  const topPatterns = dedupePatterns(patterns).slice(0, 5);
+  // Sort by uncategorized count first (most useful patterns), then total
+  patterns.sort((a, b) => {
+    if (b.uncategorizedCount !== a.uncategorizedCount) {
+      return b.uncategorizedCount - a.uncategorizedCount;
+    }
+    return (b.uncategorizedCount + b.categorizedCount) - (a.uncategorizedCount + a.categorizedCount);
+  });
+  const topPatterns = dedupePatterns(patterns).slice(0, 20);
 
   // Detect noise from raw description (if single transaction)
   let detectedNoise: DetectedNoise[] = [];
@@ -164,7 +203,10 @@ function extractNgrams(text: string, minN: number, maxN: number): string[] {
 
   for (let n = minN; n <= maxN; n++) {
     for (let i = 0; i <= words.length - n; i++) {
-      ngrams.push(words.slice(i, i + n).join(' '));
+      const ngram = words.slice(i, i + n).join(' ');
+      // Skip single-word ngrams that are too short (< 3 chars) - typically codes/letters
+      if (n === 1 && ngram.length < 3) continue;
+      ngrams.push(ngram);
     }
   }
 

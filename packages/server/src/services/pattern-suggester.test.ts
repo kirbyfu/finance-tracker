@@ -91,12 +91,14 @@ describe('PatternSuggesterService', () => {
       );
       expect(anytimeFitnessPattern).toBeDefined();
 
-      // Should have at least 3 matches
-      expect(anytimeFitnessPattern?.matchCount).toBeGreaterThanOrEqual(3);
+      // Should have at least 3 matches total (uncategorized + categorized)
+      const totalMatches =
+        (anytimeFitnessPattern?.uncategorizedCount ?? 0) + (anytimeFitnessPattern?.categorizedCount ?? 0);
+      expect(totalMatches).toBeGreaterThanOrEqual(3);
     });
 
-    it('sorts patterns by match count descending', async () => {
-      // "common" appears in 4, "rare" appears in 2
+    it('sorts patterns by uncategorized count descending', async () => {
+      // "common" appears in 4 uncategorized, "rare" appears in 2 uncategorized
       await insertTransaction('common phrase here');
       await insertTransaction('common phrase there');
       await insertTransaction('common phrase everywhere');
@@ -107,10 +109,10 @@ describe('PatternSuggesterService', () => {
       const result = await getSuggestions(target.id);
 
       expect(result.patterns.length).toBeGreaterThanOrEqual(2);
-      // First pattern should have more matches than later ones
+      // First pattern should have more uncategorized matches than later ones
       for (let i = 1; i < result.patterns.length; i++) {
-        expect(result.patterns[i - 1].matchCount).toBeGreaterThanOrEqual(
-          result.patterns[i].matchCount
+        expect(result.patterns[i - 1].uncategorizedCount).toBeGreaterThanOrEqual(
+          result.patterns[i].uncategorizedCount
         );
       }
     });
@@ -135,6 +137,23 @@ describe('PatternSuggesterService', () => {
       expect(hasAnytimeFitness).toBe(true);
     });
 
+    it('separates uncategorized and categorized match counts', async () => {
+      // Create 2 categorized + 3 uncategorized transactions with same pattern
+      await insertTransaction('amazon purchase one', categoryIds[0]);
+      await insertTransaction('amazon purchase two', categoryIds[1]);
+      await insertTransaction('amazon purchase three');
+      await insertTransaction('amazon purchase four');
+      const target = await insertTransaction('amazon purchase five');
+
+      const result = await getSuggestions(target.id);
+
+      // Find the amazon pattern
+      const amazonPattern = result.patterns.find((p) => p.pattern.toLowerCase().includes('amazon'));
+      expect(amazonPattern).toBeDefined();
+      expect(amazonPattern!.uncategorizedCount).toBe(3);
+      expect(amazonPattern!.categorizedCount).toBe(2);
+    });
+
     it('detects noise phrases appearing in 3+ categories', async () => {
       // "PAYMENT BY AUTHORITY" appears across multiple categories
       await insertTransaction('PAYMENT BY AUTHORITY TO Store1', categoryIds[0]);
@@ -153,19 +172,23 @@ describe('PatternSuggesterService', () => {
       expect(hasPaymentNoise).toBe(true);
     });
 
-    it('returns top 5 patterns', async () => {
+    it('returns top 20 patterns', async () => {
       // Create many patterns
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 30; i++) {
         await insertTransaction(`Unique${i} pattern${i} thing`);
         await insertTransaction(`Unique${i} pattern${i} other`);
       }
       const target = await insertTransaction(
-        'Unique0 pattern0 Unique1 pattern1 Unique2 pattern2 Unique3 pattern3 Unique4 pattern4 Unique5 pattern5'
+        'Unique0 pattern0 Unique1 pattern1 Unique2 pattern2 Unique3 pattern3 Unique4 pattern4 ' +
+          'Unique5 pattern5 Unique6 pattern6 Unique7 pattern7 Unique8 pattern8 Unique9 pattern9 ' +
+          'Unique10 pattern10 Unique11 pattern11 Unique12 pattern12 Unique13 pattern13 Unique14 pattern14 ' +
+          'Unique15 pattern15 Unique16 pattern16 Unique17 pattern17 Unique18 pattern18 Unique19 pattern19 ' +
+          'Unique20 pattern20 Unique21 pattern21 Unique22 pattern22 Unique23 pattern23 Unique24 pattern24'
       );
 
       const result = await getSuggestions(target.id);
 
-      expect(result.patterns.length).toBeLessThanOrEqual(5);
+      expect(result.patterns.length).toBeLessThanOrEqual(20);
     });
 
     it('generates proper regex patterns with word boundaries', async () => {

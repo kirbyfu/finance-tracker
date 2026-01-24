@@ -155,6 +155,7 @@ export function Transactions() {
     uncategorizedOnly: searchParams.get('categoryId') === 'uncategorized' || searchParams.get('uncategorizedOnly') === 'true',
     startDate: searchParams.get('startDate') || undefined,
     endDate: searchParams.get('endDate') || undefined,
+    search: searchParams.get('search') || undefined,
     sort: (searchParams.get('sort') as 'date' | 'amount') || 'date',
     order: (searchParams.get('order') as 'asc' | 'desc') || 'desc',
   };
@@ -190,6 +191,7 @@ export function Transactions() {
     uncategorizedOnly: filters.uncategorizedOnly,
     startDate: filters.startDate,
     endDate: filters.endDate,
+    search: filters.search,
     sort: filters.sort,
     order: filters.order,
     limit: numericPageSize,
@@ -204,10 +206,13 @@ export function Transactions() {
     return new Map(categories?.map(c => [c.id, { name: c.name, color: c.color }]) || []);
   }, [categories]);
 
-  const hasActiveFilters = filters.categoryId || filters.uncategorizedOnly || filters.startDate || filters.endDate;
+  const hasActiveFilters = filters.categoryId || filters.uncategorizedOnly || filters.startDate || filters.endDate || filters.search;
 
   const getFilterDescription = () => {
     const parts: string[] = [];
+    if (filters.search) {
+      parts.push(`"${filters.search}"`);
+    }
     if (filters.uncategorizedOnly) {
       parts.push('Uncategorized');
     } else if (filters.categoryId) {
@@ -305,6 +310,13 @@ export function Transactions() {
     onSuccess: () => utils.transactions.list.invalidate(),
   });
 
+  const bulkUpdateCategoryMutation = trpc.transactions.bulkUpdateCategory.useMutation({
+    onSuccess: () => {
+      utils.transactions.list.invalidate();
+      setSelectedIds(new Set());
+    },
+  });
+
   const handleCategoryChange = useCallback((transactionId: number, categoryId: string) => {
     const manualCategoryId = categoryId === 'none' ? null : parseInt(categoryId);
     updateMutation.mutate({ id: transactionId, manualCategoryId });
@@ -378,7 +390,17 @@ export function Transactions() {
               </Button>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div>
+              <Label>Description</Label>
+              <Input
+                type="text"
+                placeholder="Search..."
+                value={filters.search || ''}
+                onChange={(e) => updateFilters({ search: e.target.value || undefined })}
+                className="mt-1"
+              />
+            </div>
             <div>
               <Label>Source</Label>
               <Select
@@ -586,6 +608,27 @@ export function Transactions() {
           <span className="font-medium">
             {selectedIds.size} selected · {formatAmountNum(selectionTotal)}
           </span>
+          <Select
+            onValueChange={(value) => {
+              const manualCategoryId = value === 'none' ? null : parseInt(value);
+              bulkUpdateCategoryMutation.mutate({ ids: Array.from(selectedIds), manualCategoryId });
+            }}
+          >
+            <SelectTrigger className="w-40 h-7 bg-secondary text-secondary-foreground border-0">
+              <SelectValue placeholder="Set Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Uncategorized</SelectItem>
+              {categories?.map((category) => (
+                <SelectItem key={category.id} value={category.id.toString()}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
+                    {category.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="secondary" size="sm" onClick={() => setSelectedIds(new Set())} className="h-7">
             Clear
           </Button>

@@ -26,8 +26,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw, Lightbulb, Check, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw, Lightbulb, Check, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { CategorySelectWithCreate } from '@/components/CategorySelectWithCreate';
 
 export function Rules() {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +42,7 @@ export function Rules() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [acceptingSuggestion, setAcceptingSuggestion] = useState<{ pattern: string; matchCount: number } | null>(null);
+  const [acceptingSuggestion, setAcceptingSuggestion] = useState<{ pattern: string; uncategorizedCount: number; categorizedCount: number } | null>(null);
   const [suggestionCategoryId, setSuggestionCategoryId] = useState<number | null>(null);
 
   // Noise filters state
@@ -50,6 +51,8 @@ export function Rules() {
   const [noiseSourceId, setNoiseSourceId] = useState<number | null>(null);
   const [showNoiseSuggestions, setShowNoiseSuggestions] = useState(false);
   const [deleteNoiseId, setDeleteNoiseId] = useState<number | null>(null);
+  const [expandedNoiseSuggestion, setExpandedNoiseSuggestion] = useState<string | null>(null);
+  const [expandedPatternSuggestion, setExpandedPatternSuggestion] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
   const { data: rules, isLoading } = trpc.rules.list.useQuery();
@@ -64,28 +67,40 @@ export function Rules() {
     { enabled: testPattern.length > 0 && isTestOpen }
   );
 
+  const recategorizeMutation = trpc.transactions.recategorizeAll.useMutation({
+    onSuccess: () => {
+      utils.rules.getSuggestions.invalidate();
+      utils.noisePhrases.getSuggestions.invalidate();
+      utils.transactions.list.invalidate();
+    },
+  });
   const createMutation = trpc.rules.create.useMutation({
     onSuccess: () => {
       utils.rules.list.invalidate();
+      utils.rules.getSuggestions.invalidate();
+      utils.noisePhrases.getSuggestions.invalidate();
+      utils.transactions.list.invalidate();
       resetForm();
     },
   });
   const updateMutation = trpc.rules.update.useMutation({
     onSuccess: () => {
       utils.rules.list.invalidate();
+      utils.rules.getSuggestions.invalidate();
+      utils.noisePhrases.getSuggestions.invalidate();
+      utils.transactions.list.invalidate();
       resetForm();
     },
   });
   const deleteMutation = trpc.rules.delete.useMutation({
-    onSuccess: () => utils.rules.list.invalidate(),
+    onSuccess: () => {
+      utils.rules.list.invalidate();
+      utils.rules.getSuggestions.invalidate();
+      utils.noisePhrases.getSuggestions.invalidate();
+    },
   });
   const reorderMutation = trpc.rules.reorder.useMutation({
     onSuccess: () => utils.rules.list.invalidate(),
-  });
-  const recategorizeMutation = trpc.transactions.recategorizeAll.useMutation({
-    onSuccess: (data) => {
-      alert(`Recategorized ${data.updated} transactions`);
-    },
   });
   const createNoiseMutation = trpc.noisePhrases.create.useMutation({
     onSuccess: () => {
@@ -188,6 +203,7 @@ export function Rules() {
 
   function handleAcceptSuggestion() {
     if (!acceptingSuggestion || !suggestionCategoryId) return;
+
     createMutation.mutate({
       pattern: acceptingSuggestion.pattern,
       categoryId: suggestionCategoryId,
@@ -303,27 +319,7 @@ export function Rules() {
                 </div>
                 <div>
                   <Label>Category</Label>
-                  <Select
-                    value={categoryId?.toString() || ''}
-                    onValueChange={(v) => setCategoryId(parseInt(v))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: cat.color }}
-                            />
-                            {cat.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CategorySelectWithCreate value={categoryId} onChange={setCategoryId} />
                 </div>
                 <div>
                   <Label>Source Filter (optional)</Label>
@@ -356,7 +352,11 @@ export function Rules() {
                     <FlaskConical className="h-4 w-4 mr-2" />
                     Test
                   </Button>
-                  <Button onClick={handleSubmit} className="flex-1" disabled={!pattern || !categoryId}>
+                  <Button
+                    onClick={handleSubmit}
+                    className="flex-1"
+                    disabled={!pattern || !categoryId}
+                  >
                     {editingId ? 'Update' : 'Create'}
                   </Button>
                 </div>
@@ -541,34 +541,65 @@ export function Rules() {
           </div>
         </CardHeader>
         <CardContent>
-          {showNoiseSuggestions && noiseSuggestions && noiseSuggestions.length > 0 && (
+          {showNoiseSuggestions && (
             <div className="mb-4 p-4 bg-muted/50 rounded-lg">
               <h4 className="text-sm font-medium mb-2">Suggested Filters</h4>
               <p className="text-xs text-muted-foreground mb-3">
-                Phrases appearing in 3+ categories (likely generic banking noise)
+                Phrases appearing frequently across transactions (likely generic banking noise)
               </p>
-              <div className="space-y-2">
-                {noiseSuggestions.map((suggestion, index) => (
-                  <div key={index} className="flex items-center justify-between bg-background p-2 rounded border">
-                    <div>
-                      <code className="text-sm">{suggestion.phrase}</code>
-                      <p className="text-xs text-muted-foreground">
-                        Found in {suggestion.categoryCount} categories: {suggestion.sampleCategories.join(', ')}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => createNoiseMutation.mutate({ phrase: suggestion.phrase })}
-                        title="Add filter"
+              {noiseSuggestions && noiseSuggestions.length > 0 ? (
+                <div className="space-y-2">
+                  {noiseSuggestions.map((suggestion, index) => (
+                    <div key={index} className="bg-background rounded border">
+                      <div
+                        className="flex items-center justify-between p-2 cursor-pointer hover:bg-muted/50"
+                        onClick={() => setExpandedNoiseSuggestion(
+                          expandedNoiseSuggestion === suggestion.phrase ? null : suggestion.phrase
+                        )}
                       >
-                        <Check className="h-4 w-4" />
-                      </Button>
+                        <div className="flex items-center gap-2">
+                          {expandedNoiseSuggestion === suggestion.phrase ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <div>
+                            <code className="text-sm">{suggestion.phrase}</code>
+                            <p className="text-xs text-muted-foreground">
+                              Found in {suggestion.transactionCount} transactions
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              createNoiseMutation.mutate({ phrase: suggestion.phrase });
+                            }}
+                            title="Add filter"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {expandedNoiseSuggestion === suggestion.phrase && suggestion.sampleDescriptions.length > 0 && (
+                        <div className="px-8 pb-2 space-y-1">
+                          <p className="text-xs text-muted-foreground font-medium">Sample matches:</p>
+                          {suggestion.sampleDescriptions.map((desc, i) => (
+                            <p key={i} className="text-xs font-mono text-muted-foreground truncate">{desc}</p>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No suggestions found. Suggestions appear when phrases occur in 5+ transactions.
+                </p>
+              )}
             </div>
           )}
           <Table>
@@ -632,54 +663,80 @@ export function Rules() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pattern</TableHead>
-                  <TableHead>Matches</TableHead>
-                  <TableHead>Sample Descriptions</TableHead>
-                  <TableHead className="w-24">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {suggestions.map((suggestion, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
-                      <code className="bg-muted px-2 py-1 rounded text-sm">{suggestion.pattern}</code>
-                    </TableCell>
-                    <TableCell>{suggestion.matchCount}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
-                      {suggestion.sampleDescriptions.slice(0, 2).join(', ')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openTestDialog(suggestion.pattern)}
-                          title="Test pattern"
-                        >
-                          <FlaskConical className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setAcceptingSuggestion({ pattern: suggestion.pattern, matchCount: suggestion.matchCount })}
-                          title="Create rule from suggestion"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
+            <div className="space-y-2">
+              {suggestions.map((suggestion, index) => (
+                <div key={index} className="border rounded">
+                  <div
+                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
+                    onClick={() => setExpandedPatternSuggestion(
+                      expandedPatternSuggestion === suggestion.pattern ? null : suggestion.pattern
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {expandedPatternSuggestion === suggestion.pattern ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <div>
+                        <code className="bg-muted px-2 py-1 rounded text-sm">{suggestion.pattern}</code>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {suggestion.uncategorizedCount > 0 && (
+                            <span className="text-primary font-medium">{suggestion.uncategorizedCount} new</span>
+                          )}
+                          {suggestion.uncategorizedCount > 0 && suggestion.categorizedCount > 0 && ', '}
+                          {suggestion.categorizedCount > 0 && (
+                            <span>{suggestion.categorizedCount} categorized</span>
+                          )}
+                        </p>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTestDialog(suggestion.pattern);
+                        }}
+                        title="Test pattern"
+                      >
+                        <FlaskConical className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAcceptingSuggestion({ pattern: suggestion.pattern, uncategorizedCount: suggestion.uncategorizedCount, categorizedCount: suggestion.categorizedCount });
+                        }}
+                        title="Create rule from suggestion"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {expandedPatternSuggestion === suggestion.pattern && suggestion.sampleDescriptions.length > 0 && (
+                    <div className="px-10 pb-3 space-y-1 border-t bg-muted/30">
+                      <p className="text-xs text-muted-foreground font-medium pt-2">Sample matches:</p>
+                      {suggestion.sampleDescriptions.map((desc, i) => (
+                        <p key={i} className="text-xs font-mono text-muted-foreground">{desc}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
 
-      <Dialog open={acceptingSuggestion !== null} onOpenChange={(open) => !open && setAcceptingSuggestion(null)}>
+      <Dialog open={acceptingSuggestion !== null} onOpenChange={(open) => {
+        if (!open) {
+          setAcceptingSuggestion(null);
+          setSuggestionCategoryId(null);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Rule from Suggestion</DialogTitle>
@@ -691,32 +748,13 @@ export function Rules() {
                 {acceptingSuggestion?.pattern}
               </code>
               <p className="text-xs text-muted-foreground mt-1">
-                Will match {acceptingSuggestion?.matchCount} transactions
+                Will categorize {acceptingSuggestion?.uncategorizedCount} new transactions
+                {acceptingSuggestion?.categorizedCount ? ` (${acceptingSuggestion.categorizedCount} already categorized)` : ''}
               </p>
             </div>
             <div>
               <Label>Category</Label>
-              <Select
-                value={suggestionCategoryId?.toString() || ''}
-                onValueChange={(v) => setSuggestionCategoryId(parseInt(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories?.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        {cat.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CategorySelectWithCreate value={suggestionCategoryId} onChange={setSuggestionCategoryId} />
             </div>
             <Button
               onClick={handleAcceptSuggestion}

@@ -1,5 +1,5 @@
 import { eq, isNull, or } from 'drizzle-orm';
-import { db, noisePhrases, transactions, categories } from '../db';
+import { db, noisePhrases, transactions } from '../db';
 import type { NoisePhrase } from '../db/schema';
 
 export async function list(): Promise<NoisePhrase[]> {
@@ -37,51 +37,51 @@ export async function remove(id: number): Promise<void> {
 }
 
 export async function getSuggestions(): Promise<
-  { phrase: string; categoryCount: number; sampleCategories: string[] }[]
+  { phrase: string; transactionCount: number; sampleDescriptions: string[] }[]
 > {
-  // Find phrases appearing in 3+ different categories
+  // Find phrases appearing in 5+ transactions (based on cleaned descriptions)
   const allTransactions = await db
-    .select({
-      description: transactions.description,
-      categoryId: transactions.categoryId,
-    })
+    .select({ cleanedDescription: transactions.cleanedDescription })
     .from(transactions);
 
-  const allCategories = await db.select().from(categories);
-  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+  // Extract n-grams (1-4 words) from cleaned descriptions
+  const ngramTxMap = new Map<string, Set<number>>();
+  const ngramSamples = new Map<string, string[]>();
 
-  // Extract n-grams (1-4 words) from descriptions
-  const ngramCategoryMap = new Map<string, Set<number>>();
-
-  for (const tx of allTransactions) {
-    if (!tx.categoryId) continue;
-    const ngrams = extractNgrams(tx.description, 1, 4);
+  for (let i = 0; i < allTransactions.length; i++) {
+    const tx = allTransactions[i];
+    const desc = tx.cleanedDescription || '';
+    if (!desc) continue;
+    const ngrams = extractNgrams(desc, 1, 4);
     for (const ngram of ngrams) {
-      if (!ngramCategoryMap.has(ngram)) {
-        ngramCategoryMap.set(ngram, new Set());
+      if (!ngramTxMap.has(ngram)) {
+        ngramTxMap.set(ngram, new Set());
+        ngramSamples.set(ngram, []);
       }
-      ngramCategoryMap.get(ngram)!.add(tx.categoryId);
+      ngramTxMap.get(ngram)!.add(i);
+      const samples = ngramSamples.get(ngram)!;
+      if (samples.length < 5 && !samples.includes(desc)) {
+        samples.push(desc);
+      }
     }
   }
 
-  // Filter to n-grams appearing in 3+ categories
-  const candidates: { phrase: string; categoryCount: number; sampleCategories: string[] }[] = [];
-  for (const [phrase, categoryIds] of ngramCategoryMap) {
-    if (categoryIds.size >= 3) {
+  // Filter to n-grams appearing in 5+ transactions
+  const candidates: { phrase: string; transactionCount: number; sampleDescriptions: string[] }[] = [];
+  for (const [phrase, txIndices] of ngramTxMap) {
+    if (txIndices.size >= 5) {
       candidates.push({
         phrase,
-        categoryCount: categoryIds.size,
-        sampleCategories: Array.from(categoryIds)
-          .slice(0, 3)
-          .map((id) => categoryMap.get(id) || 'Unknown'),
+        transactionCount: txIndices.size,
+        sampleDescriptions: ngramSamples.get(phrase) || [],
       });
     }
   }
 
-  // Sort by category count descending, return top 10
+  // Sort by transaction count descending, return top 20
   return candidates
-    .sort((a, b) => b.categoryCount - a.categoryCount)
-    .slice(0, 10);
+    .sort((a, b) => b.transactionCount - a.transactionCount)
+    .slice(0, 20);
 }
 
 export async function recomputeCleanedDescriptions(
@@ -160,7 +160,10 @@ function extractNgrams(text: string, minN: number, maxN: number): string[] {
 
   for (let n = minN; n <= maxN; n++) {
     for (let i = 0; i <= words.length - n; i++) {
-      ngrams.push(words.slice(i, i + n).join(' '));
+      const ngram = words.slice(i, i + n).join(' ');
+      // Skip single-word ngrams that are too short (< 3 chars) - typically codes/letters
+      if (n === 1 && ngram.length < 3) continue;
+      ngrams.push(ngram);
     }
   }
 

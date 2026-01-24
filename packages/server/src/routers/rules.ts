@@ -3,6 +3,7 @@ import { router, publicProcedure } from '../trpc';
 import { db, rules, transactions } from '../db';
 import { eq, asc } from 'drizzle-orm';
 import { getSuggestions } from '../services/pattern-suggester';
+import { recategorizeAll } from '../services/categorizer';
 
 export const rulesRouter = router({
   list: publicProcedure.query(async () => {
@@ -18,6 +19,7 @@ export const rulesRouter = router({
     }))
     .mutation(async ({ input }) => {
       const result = await db.insert(rules).values(input).returning();
+      await recategorizeAll();
       return result[0];
     }),
 
@@ -32,6 +34,7 @@ export const rulesRouter = router({
     .mutation(async ({ input }) => {
       const { id, ...updates } = input;
       const result = await db.update(rules).set(updates).where(eq(rules.id, id)).returning();
+      await recategorizeAll();
       return result[0];
     }),
 
