@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { Plus } from 'lucide-react';
+import { Plus, Filter, Sparkles } from 'lucide-react';
 
 const COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
@@ -40,25 +40,6 @@ interface CreateRulePanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * Generate a suggested regex pattern from a transaction description.
- * - Escapes regex special characters
- * - Replaces sequences of digits with \d+
- * - Trims and handles common patterns
- */
-function generateSuggestedPattern(description: string): string {
-  // Escape regex special characters
-  let pattern = description.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  // Replace sequences of digits with \d+ to match similar transactions
-  pattern = pattern.replace(/\d+/g, '\\d+');
-
-  // Collapse multiple spaces into single space matcher
-  pattern = pattern.replace(/\s+/g, '\\s+');
-
-  return pattern;
-}
-
 export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRulePanelProps) {
   const [pattern, setPattern] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -71,6 +52,20 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
   const { data: categories } = trpc.categories.list.useQuery();
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: rules } = trpc.rules.list.useQuery();
+
+  // Fetch pattern suggestions when panel opens with a transaction
+  const { data: suggestionsData, isLoading: isLoadingSuggestions } = trpc.rules.getSuggestions.useQuery(
+    { transactionId: transaction?.id },
+    { enabled: open && !!transaction?.id }
+  );
+
+  // Mutation to add noise filter
+  const createNoiseMutation = trpc.noisePhrases.create.useMutation({
+    onSuccess: () => {
+      utils.noisePhrases.list.invalidate();
+      utils.rules.getSuggestions.invalidate();
+    },
+  });
 
   // Test pattern against existing transactions
   const { data: matchingTransactions, isLoading: isTestingPattern } = trpc.rules.test.useQuery(
@@ -97,13 +92,21 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [addedNoiseFilters, setAddedNoiseFilters] = useState<Set<string>>(new Set());
 
-  // Auto-generate suggested pattern when transaction changes
+  // Auto-select first pattern suggestion when available
   useEffect(() => {
-    if (transaction && open) {
-      setPattern(generateSuggestedPattern(transaction.description));
+    if (suggestionsData?.patterns && suggestionsData.patterns.length > 0 && !pattern) {
+      setPattern(suggestionsData.patterns[0].pattern);
     }
-  }, [transaction?.id, open]);
+  }, [suggestionsData?.patterns]);
+
+  // Reset added noise filters when panel closes
+  useEffect(() => {
+    if (!open) {
+      setAddedNoiseFilters(new Set());
+    }
+  }, [open]);
 
   function handleClose() {
     setPattern('');
@@ -183,6 +186,93 @@ export function CreateRulePanel({ transaction, open, onOpenChange }: CreateRuleP
         )}
 
         <div className="mt-6 space-y-4">
+          {/* Detected Noise Section */}
+          {suggestionsData?.detectedNoise && suggestionsData.detectedNoise.length > 0 && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                <Filter className="w-4 h-4" />
+                Detected Noise
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                These phrases appear in many categories. Add as filters?
+              </p>
+              <div className="mt-2 space-y-1.5">
+                {suggestionsData.detectedNoise.map((noise) => (
+                  <div key={noise.phrase} className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-mono text-amber-900 dark:text-amber-100">
+                      {noise.phrase}
+                      <span className="text-xs text-amber-600 dark:text-amber-400 ml-2">
+                        ({noise.categoryCount} categories)
+                      </span>
+                    </span>
+                    {addedNoiseFilters.has(noise.phrase) ? (
+                      <span className="text-xs text-green-600 dark:text-green-400">Added</span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs"
+                        disabled={createNoiseMutation.isPending}
+                        onClick={() => {
+                          createNoiseMutation.mutate(
+                            { phrase: noise.phrase, sourceId: transaction?.sourceId },
+                            {
+                              onSuccess: () => {
+                                setAddedNoiseFilters((prev) => new Set([...prev, noise.phrase]));
+                              },
+                            }
+                          );
+                        }}
+                      >
+                        Add Filter
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pattern Suggestions Section */}
+          {isLoadingSuggestions && (
+            <div className="text-sm text-muted-foreground">Loading suggestions...</div>
+          )}
+
+          {suggestionsData?.patterns && suggestionsData.patterns.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <Label>Suggested Patterns</Label>
+              </div>
+              <div className="space-y-2">
+                {suggestionsData.patterns.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`w-full text-left p-2 rounded-md border transition-colors ${
+                      pattern === suggestion.pattern
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    }`}
+                    onClick={() => setPattern(suggestion.pattern)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <code className="text-xs font-mono break-all">{suggestion.pattern}</code>
+                      <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                        {suggestion.matchCount} matches
+                      </span>
+                    </div>
+                    {suggestion.sampleDescriptions.length > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground truncate">
+                        e.g., {suggestion.sampleDescriptions[0]}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <Label>Pattern (regex)</Label>
             <Input

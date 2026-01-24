@@ -132,3 +132,27 @@ Files changed:
 - packages/web/src/pages/Rules.tsx
 
 All 50 tests pass. Types check.
+
+## Task 7: UI - CreateRulePanel multiple suggestions - DONE
+
+Updated CreateRulePanel to use new n-gram based suggestions API.
+
+Changes:
+- Removed generateSuggestedPattern() function (old regex escaping approach)
+- Added rules.getSuggestions query with transactionId
+- Added noisePhrases.create mutation for inline noise filter creation
+- Added detected noise section (amber box) with phrase + category count + Add Filter buttons
+- Added pattern suggestions section with selectable cards showing pattern, match count, sample descriptions
+- Auto-selects first pattern when suggestions load
+- Tracks added noise filters per-session to show "Added" state
+
+Key decisions:
+- Noise section appears above suggestions (more important context)
+- Pattern cards are clickable, selected state shows with primary border
+- Noise filters scoped to transaction's sourceId
+- Filter Sparkles icon on suggestions header
+
+Files changed:
+- packages/web/src/components/CreateRulePanel.tsx
+
+All 50 tests pass. Types check.

@@ -151,7 +151,7 @@ Style consistently with existing Rules page.
 
 ---
 
-### Task 7: UI - CreateRulePanel multiple suggestions
+### Task 7: UI - CreateRulePanel multiple suggestions ✅ DONE
 **Priority: 4 (Feature)**
 
 Update CreateRulePanel.tsx:
@@ -163,6 +163,8 @@ Update CreateRulePanel.tsx:
 - Clicking selects pattern, then user picks category as before
 
 **Done when:** CreateRulePanel shows multiple suggestions ranked by match count, allows adding noise filters inline.
+
+**Completed:** Removed generateSuggestedPattern. Added getSuggestions query with transactionId. Shows detected noise in amber box with "Add Filter" buttons. Shows pattern suggestions as selectable cards with match counts and sample descriptions. Auto-selects first suggestion. Types check, 50 tests pass.
 
 ---
 
