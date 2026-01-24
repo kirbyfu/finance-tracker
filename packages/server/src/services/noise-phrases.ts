@@ -1,4 +1,4 @@
-import { eq, isNull, or, and, sql } from 'drizzle-orm';
+import { eq, isNull, or } from 'drizzle-orm';
 import { db, noisePhrases, transactions, categories } from '../db';
 import type { NoisePhrase } from '../db/schema';
 
@@ -90,9 +90,6 @@ export async function recomputeCleanedDescriptions(
   // Get all applicable phrases
   const phrases = await db.select().from(noisePhrases);
   const globalPhrases = phrases.filter((p) => p.sourceId === null);
-  const sourcePhrases = sourceId
-    ? phrases.filter((p) => p.sourceId === sourceId)
-    : [];
 
   // Get transactions to update
   const txQuery = sourceId

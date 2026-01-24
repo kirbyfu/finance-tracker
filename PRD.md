@@ -64,7 +64,7 @@ Noise filter application:
 
 ---
 
-### Task 3: Service - PatternSuggesterService (rewrite)
+### Task 3: Service - PatternSuggesterService (rewrite) ✅ DONE
 **Priority: 1 (Architecture)**
 
 Rewrite `packages/server/src/services/pattern-suggester.ts`:
@@ -91,6 +91,8 @@ Also detect noise in raw description:
 Remove old strategies (merchant prefix, common substring, normalized grouping).
 
 **Done when:** Service rewritten, old code removed, returns multiple suggestions sorted by match count.
+
+**Completed:** Service rewritten with n-gram based suggestions. New types: PatternSuggestion, DetectedNoise, SuggestionsResult. Legacy getSuggestedPatterns() kept for backwards compatibility. 8 tests added.
 
 ---
 

@@ -1,5 +1,5 @@
+import { eq, isNull, and } from 'drizzle-orm';
 import { db, transactions } from '../db';
-import { isNull, and } from 'drizzle-orm';
 
 export interface PatternSuggestion {
   pattern: string;
@@ -7,214 +7,232 @@ export interface PatternSuggestion {
   sampleDescriptions: string[];
 }
 
+export interface DetectedNoise {
+  phrase: string;
+  categoryCount: number;
+}
+
+export interface SuggestionsResult {
+  patterns: PatternSuggestion[];
+  detectedNoise: DetectedNoise[];
+}
+
 /**
- * Analyzes uncategorized transaction descriptions to find common patterns.
- * Returns suggested regex patterns that would match multiple transactions.
+ * Get pattern suggestions for a transaction or all uncategorized transactions.
+ * Uses cleaned_description for n-gram extraction, raw description for noise detection.
  */
-export async function getSuggestedPatterns(): Promise<PatternSuggestion[]> {
-  // Get all uncategorized transactions
-  const uncategorized = await db
-    .select({ description: transactions.description })
-    .from(transactions)
-    .where(and(isNull(transactions.categoryId), isNull(transactions.manualCategoryId)));
+export async function getSuggestions(transactionId?: number): Promise<SuggestionsResult> {
+  // Get target cleaned description(s)
+  let targetDescriptions: string[];
+  let rawDescription: string | null = null;
 
-  if (uncategorized.length === 0) return [];
+  if (transactionId) {
+    const [tx] = await db
+      .select({
+        cleanedDescription: transactions.cleanedDescription,
+        description: transactions.description,
+      })
+      .from(transactions)
+      .where(eq(transactions.id, transactionId));
 
-  const descriptions = uncategorized.map(t => t.description);
+    if (!tx || !tx.cleanedDescription) {
+      return { patterns: [], detectedNoise: [] };
+    }
+    targetDescriptions = [tx.cleanedDescription];
+    rawDescription = tx.description;
+  } else {
+    // All uncategorized transactions
+    const uncategorized = await db
+      .select({ cleanedDescription: transactions.cleanedDescription })
+      .from(transactions)
+      .where(and(isNull(transactions.categoryId), isNull(transactions.manualCategoryId)));
 
-  // Extract patterns using multiple strategies
-  const suggestions = new Map<string, Set<string>>();
+    targetDescriptions = uncategorized
+      .map((t) => t.cleanedDescription)
+      .filter((d): d is string => !!d);
 
-  // Strategy 1: Extract merchant-like prefixes (first 2-3 words, common pattern)
-  for (const desc of descriptions) {
-    const prefix = extractMerchantPrefix(desc);
-    if (prefix && prefix.length >= 3) {
-      const pattern = escapeForRegex(prefix);
-      if (!suggestions.has(pattern)) suggestions.set(pattern, new Set());
-      suggestions.get(pattern)!.add(desc);
+    if (targetDescriptions.length === 0) {
+      return { patterns: [], detectedNoise: [] };
     }
   }
 
-  // Strategy 2: Find common substrings across descriptions
-  const commonSubstrings = findCommonSubstrings(descriptions, 5); // min length 5
-  for (const substring of commonSubstrings) {
-    const pattern = escapeForRegex(substring);
-    if (!suggestions.has(pattern)) {
-      const matches = descriptions.filter(d => d.toLowerCase().includes(substring.toLowerCase()));
-      if (matches.length >= 2) {
-        suggestions.set(pattern, new Set(matches));
-      }
-    }
-  }
+  // Get all cleaned descriptions for matching
+  const allTxs = await db
+    .select({ cleanedDescription: transactions.cleanedDescription })
+    .from(transactions);
 
-  // Strategy 3: Group by normalized description (replace numbers with \d+)
-  const normalized = new Map<string, Set<string>>();
-  for (const desc of descriptions) {
-    const norm = normalizeDescription(desc);
-    if (!normalized.has(norm)) normalized.set(norm, new Set());
-    normalized.get(norm)!.add(desc);
-  }
+  const allCleanedDescriptions = allTxs
+    .map((t) => t.cleanedDescription)
+    .filter((d): d is string => !!d);
 
-  for (const [norm, descs] of normalized) {
-    if (descs.size >= 2) {
-      // Convert normalized form to regex pattern
-      const pattern = norm
-        .replace(/\s+/g, '\\s+')
-        .replace(/NUM/g, '\\d+');
-      if (!suggestions.has(pattern)) {
-        suggestions.set(pattern, descs);
-      }
-    }
-  }
+  // Extract n-grams from target descriptions
+  const ngramCounts = new Map<string, { count: number; samples: Set<string> }>();
 
-  // Convert to array and filter to patterns matching 2+ transactions
-  const results: PatternSuggestion[] = [];
-  for (const [pattern, matchedDescs] of suggestions) {
-    if (matchedDescs.size >= 2) {
-      // Verify pattern actually matches (sanity check)
-      try {
-        const regex = new RegExp(pattern, 'i');
-        const verified = descriptions.filter(d => regex.test(d));
-        if (verified.length >= 2) {
-          results.push({
-            pattern,
-            matchCount: verified.length,
-            sampleDescriptions: verified.slice(0, 3),
+  for (const desc of targetDescriptions) {
+    const ngrams = extractNgrams(desc, 1, 4);
+    for (const ngram of ngrams) {
+      if (!ngramCounts.has(ngram)) {
+        // Count matches across all cleaned descriptions
+        const matches = allCleanedDescriptions.filter((d) =>
+          d.toLowerCase().includes(ngram)
+        );
+        if (matches.length >= 2) {
+          ngramCounts.set(ngram, {
+            count: matches.length,
+            samples: new Set(matches.slice(0, 3)),
           });
         }
-      } catch {
-        // Invalid regex, skip
       }
     }
   }
 
-  // Sort by match count descending, dedupe overlapping patterns
-  results.sort((a, b) => b.matchCount - a.matchCount);
-  return dedupeOverlappingPatterns(results);
+  // Convert to patterns, sort by match count
+  const patterns: PatternSuggestion[] = [];
+  for (const [ngram, data] of ngramCounts) {
+    patterns.push({
+      pattern: ngramToRegex(ngram),
+      matchCount: data.count,
+      sampleDescriptions: Array.from(data.samples),
+    });
+  }
+
+  patterns.sort((a, b) => b.matchCount - a.matchCount);
+  const topPatterns = dedupePatterns(patterns).slice(0, 5);
+
+  // Detect noise from raw description (if single transaction)
+  let detectedNoise: DetectedNoise[] = [];
+  if (rawDescription) {
+    detectedNoise = await detectNoise(rawDescription);
+  }
+
+  return { patterns: topPatterns, detectedNoise };
 }
 
 /**
- * Extract merchant-like prefix from description.
- * Takes first 2-3 capitalized words or words before common separators.
+ * Detect n-grams in raw description that appear across 3+ categories.
+ * These are likely noise phrases.
  */
-function extractMerchantPrefix(desc: string): string | null {
-  // Remove leading transaction codes/dates
-  const cleaned = desc.replace(/^[\d\s*#-]+/, '').trim();
+async function detectNoise(rawDescription: string): Promise<DetectedNoise[]> {
+  const ngrams = extractNgrams(rawDescription.toLowerCase(), 1, 4);
 
-  // Split on common separators
-  const parts = cleaned.split(/[*#\-\/\\|]+/);
-  if (parts.length > 1 && parts[0].trim().length >= 3) {
-    return parts[0].trim();
+  // Get all transactions with categories
+  const allTxs = await db
+    .select({
+      description: transactions.description,
+      categoryId: transactions.categoryId,
+    })
+    .from(transactions);
+
+  // Count categories per n-gram
+  const ngramCategories = new Map<string, Set<number>>();
+  for (const ngram of ngrams) {
+    ngramCategories.set(ngram, new Set());
   }
 
-  // Take first 2-3 words if they look like a merchant name
-  const words = cleaned.split(/\s+/);
-  if (words.length >= 2) {
-    const prefix = words.slice(0, Math.min(3, words.length)).join(' ');
-    // Skip if it's mostly numbers or too short
-    if (prefix.replace(/\d/g, '').length >= 3) {
-      return prefix;
+  for (const tx of allTxs) {
+    if (!tx.categoryId) continue;
+    const txLower = tx.description.toLowerCase();
+    for (const ngram of ngrams) {
+      if (txLower.includes(ngram)) {
+        ngramCategories.get(ngram)!.add(tx.categoryId);
+      }
     }
   }
 
-  return null;
+  // Filter to n-grams in 3+ categories
+  const noise: DetectedNoise[] = [];
+  for (const [phrase, categoryIds] of ngramCategories) {
+    if (categoryIds.size >= 3) {
+      noise.push({
+        phrase,
+        categoryCount: categoryIds.size,
+      });
+    }
+  }
+
+  // Sort by category count, dedupe, return top 5
+  noise.sort((a, b) => b.categoryCount - a.categoryCount);
+  return dedupeNoise(noise).slice(0, 5);
 }
 
 /**
- * Escape special regex characters.
+ * Extract n-grams (1-4 words) from text.
  */
-function escapeForRegex(str: string): string {
+function extractNgrams(text: string, minN: number, maxN: number): string[] {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const ngrams: string[] = [];
+
+  for (let n = minN; n <= maxN; n++) {
+    for (let i = 0; i <= words.length - n; i++) {
+      ngrams.push(words.slice(i, i + n).join(' '));
+    }
+  }
+
+  return ngrams;
+}
+
+/**
+ * Convert n-gram to regex pattern with word boundaries and flexible whitespace.
+ */
+function ngramToRegex(ngram: string): string {
+  const words = ngram.split(/\s+/);
+  const escaped = words.map((w) => escapeRegex(w));
+  return `\\b${escaped.join('\\s+')}\\b`;
+}
+
+function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * Normalize description by replacing numbers with placeholder.
+ * Remove patterns that are substrings of higher-count patterns.
  */
-function normalizeDescription(desc: string): string {
-  return desc
-    .replace(/\d+/g, 'NUM')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-/**
- * Find common substrings that appear in multiple descriptions.
- */
-function findCommonSubstrings(descriptions: string[], minLength: number): string[] {
-  const substringCounts = new Map<string, number>();
-
-  for (const desc of descriptions) {
-    const lowerDesc = desc.toLowerCase();
-    const seen = new Set<string>();
-
-    // Extract substrings of various lengths
-    for (let len = minLength; len <= Math.min(30, lowerDesc.length); len++) {
-      for (let i = 0; i <= lowerDesc.length - len; i++) {
-        const sub = lowerDesc.substring(i, i + len);
-        // Skip if mostly whitespace or numbers
-        if (sub.replace(/[\s\d]/g, '').length < minLength - 1) continue;
-        // Only count once per description
-        if (!seen.has(sub)) {
-          seen.add(sub);
-          substringCounts.set(sub, (substringCounts.get(sub) || 0) + 1);
-        }
-      }
-    }
-  }
-
-  // Filter to substrings appearing in 2+ descriptions
-  const common: string[] = [];
-  for (const [sub, count] of substringCounts) {
-    if (count >= 2) {
-      common.push(sub);
-    }
-  }
-
-  // Sort by length descending (prefer longer matches)
-  common.sort((a, b) => b.length - a.length);
-
-  // Keep only non-overlapping substrings (longer ones take priority)
-  const result: string[] = [];
-  for (const sub of common) {
-    const isSubstringOfExisting = result.some(r => r.includes(sub));
-    if (!isSubstringOfExisting) {
-      result.push(sub);
-    }
-    if (result.length >= 20) break; // Limit results
-  }
-
-  return result;
-}
-
-/**
- * Remove patterns that are subsets of other patterns with similar match counts.
- */
-function dedupeOverlappingPatterns(patterns: PatternSuggestion[]): PatternSuggestion[] {
+function dedupePatterns(patterns: PatternSuggestion[]): PatternSuggestion[] {
   const result: PatternSuggestion[] = [];
 
   for (const pattern of patterns) {
-    // Check if this pattern's matches are a subset of an existing pattern
-    const isDuplicate = result.some(existing => {
-      // If match counts are similar and one pattern contains the other
-      const countDiff = Math.abs(existing.matchCount - pattern.matchCount);
-      const similarCounts = countDiff <= 1 || countDiff / existing.matchCount < 0.2;
+    // Extract the core text from the regex pattern
+    const coreText = pattern.pattern
+      .replace(/\\b/g, '')
+      .replace(/\\s\+/g, ' ')
+      .toLowerCase();
 
-      if (similarCounts) {
-        // Check if patterns are related (one contains the other)
-        const p1 = pattern.pattern.toLowerCase();
-        const p2 = existing.pattern.toLowerCase();
-        return p1.includes(p2) || p2.includes(p1);
-      }
-      return false;
+    const isDupe = result.some((existing) => {
+      const existingCore = existing.pattern
+        .replace(/\\b/g, '')
+        .replace(/\\s\+/g, ' ')
+        .toLowerCase();
+      return existingCore.includes(coreText);
     });
 
-    if (!isDuplicate) {
+    if (!isDupe) {
       result.push(pattern);
     }
-
-    if (result.length >= 10) break; // Limit suggestions
   }
 
   return result;
+}
+
+/**
+ * Remove noise phrases that are substrings of higher-count phrases.
+ */
+function dedupeNoise(noise: DetectedNoise[]): DetectedNoise[] {
+  const result: DetectedNoise[] = [];
+
+  for (const n of noise) {
+    const isDupe = result.some((existing) =>
+      existing.phrase.includes(n.phrase)
+    );
+    if (!isDupe) {
+      result.push(n);
+    }
+  }
+
+  return result;
+}
+
+// Legacy export for backwards compatibility during transition
+export async function getSuggestedPatterns(): Promise<PatternSuggestion[]> {
+  const result = await getSuggestions();
+  return result.patterns;
 }

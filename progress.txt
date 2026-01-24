@@ -38,3 +38,37 @@ Files changed:
 - packages/server/src/services/noise-phrases.test.ts (new)
 
 All 42 tests pass (8 new). Types check.
+
+## Task 3: Service - PatternSuggesterService (rewrite) - DONE
+
+Rewrote pattern-suggester to use n-gram based suggestions.
+
+New API:
+- getSuggestions(transactionId?) - returns { patterns, detectedNoise }
+- PatternSuggestion: { pattern, matchCount, sampleDescriptions }
+- DetectedNoise: { phrase, categoryCount }
+- getSuggestedPatterns() kept as legacy wrapper
+
+Algorithm:
+- Extract 1-4 word n-grams from target cleaned_description(s)
+- Count matches across all cleaned_descriptions (case-insensitive)
+- Filter to 2+ matches, sort by count, dedupe overlapping patterns
+- Return top 5
+
+Noise detection:
+- Extract n-grams from raw description
+- Find n-grams appearing in 3+ categories
+- Return top 5 as detectedNoise
+
+Removed old strategies:
+- extractMerchantPrefix
+- findCommonSubstrings
+- normalizeDescription grouping
+- dedupeOverlappingPatterns (replaced with simpler dedupe)
+
+Files changed:
+- packages/server/src/services/pattern-suggester.ts (rewritten)
+- packages/server/src/services/pattern-suggester.test.ts (new)
+- packages/server/src/services/noise-phrases.ts (removed unused imports)
+
+All 50 tests pass (8 new). Types check.
