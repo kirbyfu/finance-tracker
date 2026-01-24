@@ -181,7 +181,7 @@ Find where transactions are inserted (likely in import flow) and add call.
 
 ---
 
-### Task 9: Cleanup - Remove old pattern-suggester code
+### Task 9: Cleanup - Remove old pattern-suggester code ✅ DONE
 **Priority: 5 (Polish)**
 
 Verify all old pattern suggestion strategies removed:
@@ -192,6 +192,8 @@ Verify all old pattern suggestion strategies removed:
 Ensure no dead code remains.
 
 **Done when:** Old code removed, no TypeScript errors, tests pass.
+
+**Completed:** Removed legacy getSuggestedPatterns() wrapper and its test. Old strategies (merchant prefix, common substring, normalized grouping) were already removed in Task 3. Types check, 49 tests pass.
 
 ---
 

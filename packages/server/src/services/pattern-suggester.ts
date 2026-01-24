@@ -230,9 +230,3 @@ function dedupeNoise(noise: DetectedNoise[]): DetectedNoise[] {
 
   return result;
 }
-
-// Legacy export for backwards compatibility during transition
-export async function getSuggestedPatterns(): Promise<PatternSuggestion[]> {
-  const result = await getSuggestions();
-  return result.patterns;
-}

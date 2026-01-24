@@ -175,3 +175,22 @@ Files changed:
 - packages/server/src/routers/transactions.ts
 
 All 50 tests pass. Types check.
+
+## Task 9: Cleanup - Remove old pattern-suggester code - DONE
+
+Removed legacy backwards-compatibility code no longer needed.
+
+Changes:
+- Removed getSuggestedPatterns() legacy wrapper function
+- Removed import and test for getSuggestedPatterns (1 test removed)
+- Old strategies (merchant prefix, common substring, normalized grouping) already removed in Task 3
+
+Key decisions:
+- Legacy wrapper was only used in tests, safe to remove
+- No production code depended on it
+
+Files changed:
+- packages/server/src/services/pattern-suggester.ts
+- packages/server/src/services/pattern-suggester.test.ts
+
+All 49 tests pass. Types check.

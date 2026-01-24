@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { db, transactions, categories, sources, noisePhrases } from '../db';
-import { getSuggestions, getSuggestedPatterns } from './pattern-suggester';
+import { getSuggestions } from './pattern-suggester';
 import { sql } from 'drizzle-orm';
 
 describe('PatternSuggesterService', () => {
@@ -188,20 +188,4 @@ describe('PatternSuggesterService', () => {
     });
   });
 
-  describe('getSuggestedPatterns (legacy)', () => {
-    it('returns only patterns from getSuggestions', async () => {
-      await insertTransaction('Test Pattern Here');
-      await insertTransaction('Test Pattern There');
-
-      const result = await getSuggestedPatterns();
-
-      expect(Array.isArray(result)).toBe(true);
-      // All results should have pattern, matchCount, sampleDescriptions
-      for (const r of result) {
-        expect(r).toHaveProperty('pattern');
-        expect(r).toHaveProperty('matchCount');
-        expect(r).toHaveProperty('sampleDescriptions');
-      }
-    });
-  });
 });
