@@ -135,7 +135,7 @@ Modify `rules.getSuggestions` to:
 
 ---
 
-### Task 6: UI - Noise Filters section on Rules page
+### Task 6: UI - Noise Filters section on Rules page ✅ DONE
 **Priority: 4 (Feature)**
 
 Add "Noise Filters" section to Rules.tsx:
@@ -146,6 +146,8 @@ Add "Noise Filters" section to Rules.tsx:
 Style consistently with existing Rules page.
 
 **Done when:** Noise filters can be viewed, added, deleted, and suggested from Rules page.
+
+**Completed:** Added "Noise Filters" Card section with table (phrase, source, delete), "Add Filter" dialog with phrase input and source dropdown, "Suggest Filters" toggle showing candidates from getSuggestions with accept buttons. Uses ConfirmDeleteDialog for deletes. Types check, 50 tests pass.
 
 ---
 

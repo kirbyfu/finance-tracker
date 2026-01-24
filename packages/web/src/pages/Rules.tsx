@@ -26,7 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw, Lightbulb, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw, Lightbulb, Check, Filter } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 export function Rules() {
@@ -44,11 +44,20 @@ export function Rules() {
   const [acceptingSuggestion, setAcceptingSuggestion] = useState<{ pattern: string; matchCount: number } | null>(null);
   const [suggestionCategoryId, setSuggestionCategoryId] = useState<number | null>(null);
 
+  // Noise filters state
+  const [isNoiseFilterOpen, setIsNoiseFilterOpen] = useState(false);
+  const [noisePhrase, setNoisePhrase] = useState('');
+  const [noiseSourceId, setNoiseSourceId] = useState<number | null>(null);
+  const [showNoiseSuggestions, setShowNoiseSuggestions] = useState(false);
+  const [deleteNoiseId, setDeleteNoiseId] = useState<number | null>(null);
+
   const utils = trpc.useUtils();
   const { data: rules, isLoading } = trpc.rules.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: suggestionsData } = trpc.rules.getSuggestions.useQuery();
+  const { data: noisePhrases } = trpc.noisePhrases.list.useQuery();
+  const { data: noiseSuggestions } = trpc.noisePhrases.getSuggestions.useQuery();
   const suggestions = suggestionsData?.patterns;
   const { data: testResults } = trpc.rules.test.useQuery(
     { pattern: testPattern },
@@ -76,6 +85,21 @@ export function Rules() {
   const recategorizeMutation = trpc.transactions.recategorizeAll.useMutation({
     onSuccess: (data) => {
       alert(`Recategorized ${data.updated} transactions`);
+    },
+  });
+  const createNoiseMutation = trpc.noisePhrases.create.useMutation({
+    onSuccess: () => {
+      utils.noisePhrases.list.invalidate();
+      utils.noisePhrases.getSuggestions.invalidate();
+      setIsNoiseFilterOpen(false);
+      setNoisePhrase('');
+      setNoiseSourceId(null);
+    },
+  });
+  const deleteNoiseMutation = trpc.noisePhrases.delete.useMutation({
+    onSuccess: () => {
+      utils.noisePhrases.list.invalidate();
+      utils.noisePhrases.getSuggestions.invalidate();
     },
   });
 
@@ -434,6 +458,166 @@ export function Rules() {
         title="Delete Rule"
         description="Are you sure you want to delete this rule? This will not affect already categorized transactions."
         isDeleting={deleteMutation.isPending}
+      />
+
+      {/* Noise Filters Section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Noise Filters
+              </CardTitle>
+              <CardDescription>
+                Remove common banking phrases from descriptions before pattern matching.
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowNoiseSuggestions(!showNoiseSuggestions)}
+              >
+                <Lightbulb className="h-4 w-4 mr-2" />
+                {showNoiseSuggestions ? 'Hide' : 'Suggest'} Filters
+              </Button>
+              <Dialog open={isNoiseFilterOpen} onOpenChange={setIsNoiseFilterOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Filter
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Noise Filter</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Phrase</Label>
+                      <Input
+                        value={noisePhrase}
+                        onChange={(e) => setNoisePhrase(e.target.value)}
+                        placeholder="e.g., PAYMENT BY AUTHORITY TO"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This phrase will be removed from descriptions (case-insensitive)
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Source (optional)</Label>
+                      <Select
+                        value={noiseSourceId?.toString() || 'global'}
+                        onValueChange={(v) => setNoiseSourceId(v === 'global' ? null : parseInt(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Global (all sources)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="global">Global (all sources)</SelectItem>
+                          {sources?.map((src) => (
+                            <SelectItem key={src.id} value={src.id.toString()}>
+                              {src.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Optionally limit this filter to a specific source
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => createNoiseMutation.mutate({ phrase: noisePhrase, sourceId: noiseSourceId ?? undefined })}
+                      className="w-full"
+                      disabled={!noisePhrase.trim()}
+                    >
+                      Add Filter
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {showNoiseSuggestions && noiseSuggestions && noiseSuggestions.length > 0 && (
+            <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+              <h4 className="text-sm font-medium mb-2">Suggested Filters</h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Phrases appearing in 3+ categories (likely generic banking noise)
+              </p>
+              <div className="space-y-2">
+                {noiseSuggestions.map((suggestion, index) => (
+                  <div key={index} className="flex items-center justify-between bg-background p-2 rounded border">
+                    <div>
+                      <code className="text-sm">{suggestion.phrase}</code>
+                      <p className="text-xs text-muted-foreground">
+                        Found in {suggestion.categoryCount} categories: {suggestion.sampleCategories.join(', ')}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => createNoiseMutation.mutate({ phrase: suggestion.phrase })}
+                        title="Add filter"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Phrase</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead className="w-20">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {noisePhrases?.map((np) => (
+                <TableRow key={np.id}>
+                  <TableCell>
+                    <code className="bg-muted px-2 py-1 rounded text-sm">{np.phrase}</code>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {np.sourceId ? getSourceName(np.sourceId) : 'Global'}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteNoiseId(np.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!noisePhrases || noisePhrases.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    No noise filters configured. Add filters to clean up transaction descriptions.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <ConfirmDeleteDialog
+        open={deleteNoiseId !== null}
+        onOpenChange={(open) => !open && setDeleteNoiseId(null)}
+        onConfirm={() => deleteNoiseId && deleteNoiseMutation.mutate({ id: deleteNoiseId })}
+        title="Delete Noise Filter"
+        description="Are you sure you want to delete this noise filter? Cleaned descriptions will be recomputed."
+        isDeleting={deleteNoiseMutation.isPending}
       />
 
       {suggestions && suggestions.length > 0 && (

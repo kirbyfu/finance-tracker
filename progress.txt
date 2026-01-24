@@ -106,3 +106,29 @@ Files changed:
 - packages/web/src/pages/Rules.tsx
 
 All 50 tests pass. Types check.
+
+## Task 6: UI - Noise Filters section on Rules page - DONE
+
+Added "Noise Filters" section to Rules.tsx.
+
+Components:
+- Card with Filter icon header, description
+- Table: Phrase (code), Source (Global or source name), Delete button
+- "Add Filter" Dialog: phrase input, optional source dropdown
+- "Suggest Filters" toggle: shows collapsible suggestions panel
+- Suggestions show phrase, category count, sample categories, accept button
+- ConfirmDeleteDialog for delete confirmation
+
+Mutations:
+- createNoiseMutation invalidates list + suggestions
+- deleteNoiseMutation invalidates list + suggestions
+
+Key decisions:
+- Placed section after Categorization Rules card
+- Suggestions shown inline with toggle, not separate modal
+- Reuses existing UI patterns (Dialog, Table, ConfirmDeleteDialog)
+
+Files changed:
+- packages/web/src/pages/Rules.tsx
+
+All 50 tests pass. Types check.
