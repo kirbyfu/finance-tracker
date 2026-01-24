@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -12,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -21,766 +17,382 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const MONTHS_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-const COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#6b7280',
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
-export function Reports() {
-  const currentDate = new Date();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  // Get year/month from URL, default to current date
-  const yearParam = searchParams.get('year');
-  const monthParam = searchParams.get('month');
-  const year = yearParam ? parseInt(yearParam, 10) : currentDate.getFullYear();
-  const month = monthParam ? parseInt(monthParam, 10) : currentDate.getMonth() + 1;
+function buildTransactionUrl(
+  categoryId: number | null,
+  period: { year: number; month?: number }
+): string {
+  const params = new URLSearchParams();
 
-  const setYear = (newYear: number) => {
-    setSearchParams((prev) => {
-      prev.set('year', newYear.toString());
-      return prev;
-    });
-  };
-
-  const setMonth = (newMonth: number) => {
-    setSearchParams((prev) => {
-      prev.set('month', newMonth.toString());
-      return prev;
-    });
-  };
-
-  const goToPrevMonth = () => {
-    if (month === 1) {
-      setSearchParams((prev) => {
-        prev.set('year', (year - 1).toString());
-        prev.set('month', '12');
-        return prev;
-      });
-    } else {
-      setMonth(month - 1);
-    }
-  };
-
-  const goToNextMonth = () => {
-    if (month === 12) {
-      setSearchParams((prev) => {
-        prev.set('year', (year + 1).toString());
-        prev.set('month', '1');
-        return prev;
-      });
-    } else {
-      setMonth(month + 1);
-    }
-  };
-
-  const goToPrevYear = () => {
-    setYear(year - 1);
-  };
-
-  const goToNextYear = () => {
-    setYear(year + 1);
-  };
-
-  // Disable next buttons if at current month/year
-  const isCurrentMonth = year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
-  const isCurrentYear = year === currentDate.getFullYear();
-
-  // Get tab from URL, default to 'monthly'
-  const view = searchParams.get('view') === 'annual' ? 'annual' : 'monthly';
-  const handleTabChange = (value: string) => {
-    setSearchParams((prev) => {
-      prev.set('view', value);
-      return prev;
-    });
-  };
-
-  // Fetch categories for color mapping
-  const { data: categories } = trpc.categories.list.useQuery();
-  const categoryColorMap = useMemo(() => {
-    const map = new Map<number | null, string>();
-    categories?.forEach((cat, idx) => {
-      map.set(cat.id, cat.color || COLORS[idx % COLORS.length]);
-    });
-    map.set(null, '#6b7280'); // Uncategorized
-    return map;
-  }, [categories]);
-
-  const buildTransactionUrl = (categoryId: number | null, isMonthly: boolean) => {
-    const params = new URLSearchParams();
-
-    if (categoryId === null) {
-      params.set('categoryId', 'uncategorized');
-    } else {
-      params.set('categoryId', categoryId.toString());
-    }
-
-    if (isMonthly) {
-      // Monthly view: specific month
-      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-      const lastDay = new Date(year, month, 0).getDate();
-      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      params.set('startDate', startDate);
-      params.set('endDate', endDate);
-    } else {
-      // Annual view: full year
-      params.set('startDate', `${year}-01-01`);
-      params.set('endDate', `${year}-12-31`);
-    }
-
-    // Default sort: amount ascending (biggest expenses first)
-    params.set('sort', 'amount');
-    params.set('order', 'asc');
-
-    return `/transactions?${params.toString()}`;
-  };
-
-  // Monthly report
-  const { data: monthlyData, isLoading: monthlyLoading } = trpc.reports.monthly.useQuery({
-    year,
-    month,
-  });
-
-  // Monthly comparison (last 6 months)
-  const { data: monthlyComparison } = trpc.reports.monthlyComparison.useQuery({
-    startYear: month <= 6 ? year - 1 : year,
-    startMonth: month <= 6 ? month + 6 : month - 5,
-    endYear: year,
-    endMonth: month,
-  });
-
-  // Annual report
-  const { data: annualData, isLoading: annualLoading } = trpc.reports.annual.useQuery({
-    year,
-  });
-
-  // Annual comparison (last 3 years)
-  const { data: annualComparison } = trpc.reports.annualComparison.useQuery({
-    startYear: year - 2,
-    endYear: year,
-  });
-
-  // Process data for charts
-  const monthlyChartData = useMemo(() => {
-    if (!monthlyData) return [];
-    return monthlyData
-      .filter(item => !item.isTransfer && item.total < 0)
-      .map(item => ({
-        name: item.categoryName,
-        amount: Math.abs(item.total),
-        categoryId: item.categoryId,
-      }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [monthlyData]);
-
-  const monthlyComparisonChartData = useMemo(() => {
-    if (!monthlyComparison) return [];
-    return monthlyComparison.map(m => {
-      const expenseTotal = m.breakdown
-        .filter(b => !b.isTransfer && b.total < 0)
-        .reduce((sum, b) => sum + Math.abs(b.total), 0);
-      const incomeTotal = m.breakdown
-        .filter(b => b.total > 0)
-        .reduce((sum, b) => sum + b.total, 0);
-      return {
-        name: `${MONTHS[m.month - 1].slice(0, 3)} ${m.year}`,
-        expenses: expenseTotal,
-        income: incomeTotal,
-      };
-    });
-  }, [monthlyComparison]);
-
-  const annualChartData = useMemo(() => {
-    if (!annualData) return [];
-    return annualData
-      .filter(item => !item.isTransfer && item.total < 0)
-      .map(item => ({
-        name: item.categoryName,
-        amount: Math.abs(item.total),
-        categoryId: item.categoryId,
-      }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [annualData]);
-
-  const annualComparisonChartData = useMemo(() => {
-    if (!annualComparison) return [];
-    return annualComparison.map(y => {
-      const expenseTotal = y.breakdown
-        .filter(b => !b.isTransfer && b.total < 0)
-        .reduce((sum, b) => sum + Math.abs(b.total), 0);
-      const incomeTotal = y.breakdown
-        .filter(b => b.total > 0)
-        .reduce((sum, b) => sum + b.total, 0);
-      return {
-        name: y.year.toString(),
-        expenses: expenseTotal,
-        income: incomeTotal,
-      };
-    });
-  }, [annualComparison]);
-
-  // Summary calculations
-  const monthlyTotals = useMemo(() => {
-    if (!monthlyData) return { expenses: 0, income: 0, transfers: 0 };
-    return {
-      expenses: monthlyData
-        .filter(d => !d.isTransfer && d.total < 0)
-        .reduce((sum, d) => sum + d.total, 0),
-      income: monthlyData
-        .filter(d => !d.isTransfer && d.total > 0)
-        .reduce((sum, d) => sum + d.total, 0),
-      transfers: monthlyData
-        .filter(d => d.isTransfer)
-        .reduce((sum, d) => sum + d.total, 0),
-    };
-  }, [monthlyData]);
-
-  const annualTotals = useMemo(() => {
-    if (!annualData) return { expenses: 0, income: 0, transfers: 0 };
-    return {
-      expenses: annualData
-        .filter(d => !d.isTransfer && d.total < 0)
-        .reduce((sum, d) => sum + d.total, 0),
-      income: annualData
-        .filter(d => !d.isTransfer && d.total > 0)
-        .reduce((sum, d) => sum + d.total, 0),
-      transfers: annualData
-        .filter(d => d.isTransfer)
-        .reduce((sum, d) => sum + d.total, 0),
-    };
-  }, [annualData]);
-
-  // Generate year options
-  const yearOptions = [];
-  for (let y = currentDate.getFullYear(); y >= currentDate.getFullYear() - 10; y--) {
-    yearOptions.push(y);
+  if (categoryId === null) {
+    params.set('categoryId', 'uncategorized');
+  } else {
+    params.set('categoryId', categoryId.toString());
   }
+
+  if (period.month !== undefined) {
+    const startDate = `${period.year}-${String(period.month).padStart(2, '0')}-01`;
+    const lastDay = new Date(period.year, period.month, 0).getDate();
+    const endDate = `${period.year}-${String(period.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    params.set('startDate', startDate);
+    params.set('endDate', endDate);
+  } else {
+    params.set('startDate', `${period.year}-01-01`);
+    params.set('endDate', `${period.year}-12-31`);
+  }
+
+  params.set('sort', 'amount');
+  params.set('order', 'asc');
+
+  return `/transactions?${params.toString()}`;
+}
+
+interface MonthCategoryRow {
+  categoryId: number | null;
+  categoryName: string;
+  monthTotals: Map<string, number>;
+  sortValue: number;
+}
+
+interface YearCategoryRow {
+  categoryId: number | null;
+  categoryName: string;
+  yearTotals: Map<number, number>;
+  sortValue: number;
+}
+
+function MonthsView() {
+  const [monthCount, setMonthCount] = useState(12);
+  const { data, isLoading } = trpc.reports.multiMonth.useQuery({ months: monthCount });
+
+  const { monthKeys, categoryRows, netByMonth } = useMemo(() => {
+    if (!data) return { monthKeys: [], categoryRows: [], netByMonth: new Map<string, number>() };
+
+    const keys = data.map(d => `${d.year}-${d.month}`);
+    const rowMap = new Map<number | null, MonthCategoryRow>();
+    const netMap = new Map<string, number>();
+
+    for (const monthData of data) {
+      const key = `${monthData.year}-${monthData.month}`;
+      let monthNet = 0;
+
+      for (const item of monthData.breakdown) {
+        if (item.isTransfer) continue;
+        monthNet += item.total;
+
+        if (!rowMap.has(item.categoryId)) {
+          rowMap.set(item.categoryId, {
+            categoryId: item.categoryId,
+            categoryName: item.categoryName,
+            monthTotals: new Map(),
+            sortValue: 0,
+          });
+        }
+        const row = rowMap.get(item.categoryId)!;
+        row.monthTotals.set(key, item.total);
+      }
+      netMap.set(key, monthNet);
+    }
+
+    const rows = Array.from(rowMap.values());
+    for (const row of rows) {
+      let totalSum = 0;
+      for (const amount of row.monthTotals.values()) {
+        totalSum += amount;
+      }
+      row.sortValue = totalSum > 0 ? 1000000000 + totalSum : totalSum;
+    }
+    rows.sort((a, b) => b.sortValue - a.sortValue);
+
+    return { monthKeys: keys, categoryRows: rows, netByMonth: netMap };
+  }, [data]);
+
+  const formatMonthHeader = (key: string) => {
+    const [year, month] = key.split('-').map(Number);
+    return `${MONTH_NAMES[month - 1]} ${year}`;
+  };
+
+  const parseMonthKey = (key: string) => {
+    const [year, month] = key.split('-').map(Number);
+    return { year, month };
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-muted-foreground">Show last</span>
+        <Select value={monthCount.toString()} onValueChange={(v) => setMonthCount(parseInt(v))}>
+          <SelectTrigger className="w-20">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="6">6</SelectItem>
+            <SelectItem value="12">12</SelectItem>
+            <SelectItem value="18">18</SelectItem>
+            <SelectItem value="24">24</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">months</span>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Category Totals by Month</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p>Loading...</p>
+          ) : categoryRows.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No data available</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background">Category</TableHead>
+                    {monthKeys.map(key => {
+                      const period = parseMonthKey(key);
+                      return (
+                        <TableHead key={key} className="text-right min-w-[100px] p-0">
+                          <Link
+                            to={buildDetailUrl(period)}
+                            className="block w-full h-full px-4 py-2 hover:underline hover:bg-muted/50"
+                          >
+                            {formatMonthHeader(key)}
+                          </Link>
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categoryRows.map((row) => (
+                    <TableRow key={row.categoryId ?? 'uncategorized'} className="hover:bg-muted/50">
+                      <TableCell className="sticky left-0 bg-background font-medium">
+                        {row.categoryName}
+                      </TableCell>
+                      {monthKeys.map(key => {
+                        const amount = row.monthTotals.get(key) || 0;
+                        const period = parseMonthKey(key);
+                        return (
+                          <TableCell key={key} className="p-0">
+                            <Link
+                              to={buildTransactionUrl(row.categoryId, period)}
+                              className={`block w-full h-full px-4 py-2 text-right hover:underline ${amount < 0 ? 'text-red-600' : amount > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
+                            >
+                              {amount !== 0 ? formatCurrency(amount) : '-'}
+                            </Link>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 font-bold">
+                    <TableCell className="sticky left-0 bg-background">Net</TableCell>
+                    {monthKeys.map(key => {
+                      const net = netByMonth.get(key) || 0;
+                      return (
+                        <TableCell
+                          key={key}
+                          className={`text-right ${net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : ''}`}
+                        >
+                          {formatCurrency(net)}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function YearsView() {
+  const [yearCount, setYearCount] = useState(5);
+  const { data, isLoading } = trpc.reports.multiYear.useQuery({ years: yearCount });
+
+  const { years, categoryRows, netByYear } = useMemo(() => {
+    if (!data) return { years: [], categoryRows: [], netByYear: new Map<number, number>() };
+
+    const yearsArr = data.map(d => d.year);
+    const rowMap = new Map<number | null, YearCategoryRow>();
+    const netMap = new Map<number, number>();
+
+    for (const yearData of data) {
+      let yearNet = 0;
+      for (const item of yearData.breakdown) {
+        if (item.isTransfer) continue;
+        yearNet += item.total;
+
+        if (!rowMap.has(item.categoryId)) {
+          rowMap.set(item.categoryId, {
+            categoryId: item.categoryId,
+            categoryName: item.categoryName,
+            yearTotals: new Map(),
+            sortValue: 0,
+          });
+        }
+        const row = rowMap.get(item.categoryId)!;
+        row.yearTotals.set(yearData.year, item.total);
+      }
+      netMap.set(yearData.year, yearNet);
+    }
+
+    const rows = Array.from(rowMap.values());
+    for (const row of rows) {
+      let totalSum = 0;
+      for (const amount of row.yearTotals.values()) {
+        totalSum += amount;
+      }
+      row.sortValue = totalSum > 0 ? 1000000000 + totalSum : totalSum;
+    }
+    rows.sort((a, b) => b.sortValue - a.sortValue);
+
+    return { years: yearsArr, categoryRows: rows, netByYear: netMap };
+  }, [data]);
+
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-muted-foreground">Show last</span>
+        <Select value={yearCount.toString()} onValueChange={(v) => setYearCount(parseInt(v))}>
+          <SelectTrigger className="w-20">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="3">3</SelectItem>
+            <SelectItem value="5">5</SelectItem>
+            <SelectItem value="7">7</SelectItem>
+            <SelectItem value="10">10</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">years</span>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Category Totals by Year</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p>Loading...</p>
+          ) : categoryRows.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No data available</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background">Category</TableHead>
+                    {years.map(year => (
+                      <TableHead key={year} className="text-right min-w-[100px] p-0">
+                        <Link
+                          to={buildDetailUrl({ year })}
+                          className="block w-full h-full px-4 py-2 hover:underline hover:bg-muted/50"
+                        >
+                          {year}
+                        </Link>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categoryRows.map((row) => (
+                    <TableRow key={row.categoryId ?? 'uncategorized'} className="hover:bg-muted/50">
+                      <TableCell className="sticky left-0 bg-background font-medium">
+                        {row.categoryName}
+                      </TableCell>
+                      {years.map(year => {
+                        const amount = row.yearTotals.get(year) || 0;
+                        return (
+                          <TableCell key={year} className="p-0">
+                            <Link
+                              to={buildTransactionUrl(row.categoryId, { year })}
+                              className={`block w-full h-full px-4 py-2 text-right hover:underline ${amount < 0 ? 'text-red-600' : amount > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
+                            >
+                              {amount !== 0 ? formatCurrency(amount) : '-'}
+                            </Link>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 font-bold">
+                    <TableCell className="sticky left-0 bg-background">Net</TableCell>
+                    {years.map(year => {
+                      const net = netByYear.get(year) || 0;
+                      return (
+                        <TableCell
+                          key={year}
+                          className={`text-right ${net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : ''}`}
+                        >
+                          {formatCurrency(net)}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function buildDetailUrl(period: { year: number; month?: number }): string {
+  const params = new URLSearchParams();
+  params.set('year', period.year.toString());
+  if (period.month !== undefined) {
+    params.set('month', period.month.toString());
+    params.set('view', 'monthly');
+  } else {
+    params.set('view', 'annual');
+  }
+  return `/reports/detail?${params.toString()}`;
+}
+
+export function Reports() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get('view') || 'months';
+
+  const handleViewChange = (newView: string) => {
+    setSearchParams({ view: newView });
+  };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Reports</h1>
-        <div className="flex gap-2">
-          <Link to="/reports/months">
-            <Button variant="outline">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Multi-Month
-            </Button>
-          </Link>
-          <Link to="/reports/years">
-            <Button variant="outline">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Multi-Year
-            </Button>
-          </Link>
-        </div>
       </div>
 
-      <Tabs value={view} onValueChange={handleTabChange} className="space-y-4">
+      <Tabs value={view} onValueChange={handleViewChange} className="mb-4">
         <TabsList>
-          <TabsTrigger value="monthly">Monthly</TabsTrigger>
-          <TabsTrigger value="annual">Annual</TabsTrigger>
+          <TabsTrigger value="months">Monthly</TabsTrigger>
+          <TabsTrigger value="years">Annual</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="monthly" className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToPrevMonth}
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-36 justify-start">
-                  {MONTHS[month - 1]}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="start">
-                <div className="grid grid-cols-3 gap-2">
-                  {MONTHS_SHORT.map((m, idx) => (
-                    <Button
-                      key={idx}
-                      variant={month === idx + 1 ? 'default' : 'ghost'}
-                      className="h-9"
-                      onClick={() => {
-                        setMonth(idx + 1);
-                        setMonthPickerOpen(false);
-                      }}
-                    >
-                      {m}
-                    </Button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNextMonth}
-              disabled={isCurrentMonth}
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Expenses
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatCurrency(monthlyTotals.expenses)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Income
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(monthlyTotals.income)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Net
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className={`text-2xl font-bold ${monthlyTotals.expenses + monthlyTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(monthlyTotals.expenses + monthlyTotals.income)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Pie Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Expenses by Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {monthlyLoading ? (
-                  <p>Loading...</p>
-                ) : monthlyChartData.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No expense data for this period
-                  </p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={monthlyChartData}
-                        dataKey="amount"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        label={({ name, percent }) =>
-                          `${name} (${(percent * 100).toFixed(0)}%)`
-                        }
-                        labelLine={false}
-                      >
-                        {monthlyChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={categoryColorMap.get(entry.categoryId) || COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Comparison Bar Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>6-Month Comparison</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {monthlyComparisonChartData.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No comparison data available
-                  </p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={monthlyComparisonChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(v) => `$${v}`} />
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                      <Legend />
-                      <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
-                      <Bar dataKey="income" name="Income" fill="#22c55e" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Breakdown Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Category Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">% of Expenses</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {monthlyData
-                    ?.filter(d => !d.isTransfer)
-                    .sort((a, b) => a.total - b.total)
-                    .map((item) => {
-                      const totalExpenses = Math.abs(monthlyTotals.expenses);
-                      const percentage = totalExpenses > 0
-                        ? ((Math.abs(item.total) / totalExpenses) * 100).toFixed(1)
-                        : '0';
-                      return (
-                        <TableRow
-                          key={item.categoryId ?? 'uncategorized'}
-                          className="cursor-pointer hover:bg-muted/50"
-                        >
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, true)}
-                              className="flex items-center gap-2 p-4 w-full"
-                            >
-                              <div
-                                className="w-3 h-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: categoryColorMap.get(item.categoryId) || '#6b7280' }}
-                              />
-                              <span className="font-medium">{item.categoryName}</span>
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, true)}
-                              className={`block p-4 text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
-                            >
-                              {formatCurrency(item.total)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, true)}
-                              className="block p-4 text-right text-muted-foreground"
-                            >
-                              {item.total < 0 ? `${percentage}%` : '-'}
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  {(!monthlyData || monthlyData.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground">
-                        No transactions for this period
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        <TabsContent value="months">
+          <MonthsView />
         </TabsContent>
-
-        <TabsContent value="annual" className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToPrevYear}
-              aria-label="Previous year"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNextYear}
-              disabled={isCurrentYear}
-              aria-label="Next year"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Expenses ({year})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatCurrency(annualTotals.expenses)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Income ({year})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(annualTotals.income)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Net ({year})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className={`text-2xl font-bold ${annualTotals.expenses + annualTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(annualTotals.expenses + annualTotals.income)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Pie Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Annual Expenses by Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {annualLoading ? (
-                  <p>Loading...</p>
-                ) : annualChartData.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No expense data for this year
-                  </p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={annualChartData}
-                        dataKey="amount"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        label={({ name, percent }) =>
-                          `${name} (${(percent * 100).toFixed(0)}%)`
-                        }
-                        labelLine={false}
-                      >
-                        {annualChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={categoryColorMap.get(entry.categoryId) || COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Year Comparison Bar Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>3-Year Comparison</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {annualComparisonChartData.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No comparison data available
-                  </p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={annualComparisonChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(v) => `$${v}`} />
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                      <Legend />
-                      <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
-                      <Bar dataKey="income" name="Income" fill="#22c55e" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Annual Breakdown Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Annual Category Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Monthly Avg</TableHead>
-                    <TableHead className="text-right">% of Expenses</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {annualData
-                    ?.filter(d => !d.isTransfer)
-                    .sort((a, b) => a.total - b.total)
-                    .map((item) => {
-                      const totalExpenses = Math.abs(annualTotals.expenses);
-                      const percentage = totalExpenses > 0
-                        ? ((Math.abs(item.total) / totalExpenses) * 100).toFixed(1)
-                        : '0';
-                      const monthlyAvg = item.total / 12;
-                      return (
-                        <TableRow
-                          key={item.categoryId ?? 'uncategorized'}
-                          className="cursor-pointer hover:bg-muted/50"
-                        >
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className="flex items-center gap-2 p-4 w-full"
-                            >
-                              <div
-                                className="w-3 h-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: categoryColorMap.get(item.categoryId) || '#6b7280' }}
-                              />
-                              <span className="font-medium">{item.categoryName}</span>
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className={`block p-4 text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
-                            >
-                              {formatCurrency(item.total)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className={`block p-4 text-right ${monthlyAvg < 0 ? 'text-red-600' : 'text-green-600'}`}
-                            >
-                              {formatCurrency(monthlyAvg)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className="block p-4 text-right text-muted-foreground"
-                            >
-                              {item.total < 0 ? `${percentage}%` : '-'}
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  {(!annualData || annualData.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No transactions for this year
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        <TabsContent value="years">
+          <YearsView />
         </TabsContent>
       </Tabs>
     </div>
