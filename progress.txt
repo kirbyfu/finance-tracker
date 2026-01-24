@@ -13,3 +13,28 @@ Files changed:
 - packages/server/src/db/schema.ts
 
 All 34 tests pass. Types check.
+
+## Task 2: Service - NoisePhrasesService - DONE
+
+Created noise-phrases service with all required methods.
+
+Methods implemented:
+- list() - returns all noise phrases
+- create(phrase, sourceId?) - inserts normalized phrase, recomputes cleaned_descriptions
+- remove(id) - deletes phrase, recomputes cleaned_descriptions
+- getSuggestions() - finds phrases appearing in 3+ categories via n-gram analysis
+- recomputeCleanedDescriptions(sourceId?) - applies all noise filters to transactions
+- cleanDescription(description, phrases) - applies filters to single description
+- getPhrasesForSource(sourceId) - gets global + source-specific phrases
+
+Key decisions:
+- cleanDescription exported for testing (pure function)
+- Noise filter application: case-insensitive regex replacement, then collapse whitespace
+- getSuggestions uses n-grams 1-4 words, returns top 10 by category count
+- recompute scoped by sourceId for efficiency
+
+Files changed:
+- packages/server/src/services/noise-phrases.ts (new)
+- packages/server/src/services/noise-phrases.test.ts (new)
+
+All 42 tests pass (8 new). Types check.

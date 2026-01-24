@@ -40,7 +40,7 @@ Run migrations. Populate cleaned_description = description for existing rows.
 
 ---
 
-### Task 2: Service - NoisePhrasesService
+### Task 2: Service - NoisePhrasesService ✅ DONE
 **Priority: 1 (Architecture)**
 
 Create `packages/server/src/services/noise-phrases.ts`:
@@ -59,6 +59,8 @@ Noise filter application:
 4. Trim and collapse whitespace
 
 **Done when:** Service created with all methods, unit tests pass.
+
+**Completed:** Service created with list(), create(), remove(), getSuggestions(), recomputeCleanedDescriptions(), cleanDescription(), getPhrasesForSource(). 8 unit tests pass.
 
 ---
 
