@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const sources = sqliteTable('sources', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -23,6 +23,7 @@ export const transactions = sqliteTable('transactions', {
   date: text('date').notNull(), // ISO date string YYYY-MM-DD
   amount: real('amount').notNull(),
   description: text('description').notNull(),
+  cleanedDescription: text('cleaned_description'),
   balance: real('balance'),
   categoryId: integer('category_id').references(() => categories.id),
   manualCategoryId: integer('manual_category_id').references(() => categories.id),
@@ -39,6 +40,15 @@ export const rules = sqliteTable('rules', {
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
+export const noisePhrases = sqliteTable('noise_phrases', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  phrase: text('phrase').notNull(), // lowercase/normalized
+  sourceId: integer('source_id').references(() => sources.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+}, (table) => [
+  uniqueIndex('noise_phrase_source_idx').on(table.phrase, table.sourceId),
+]);
+
 // Type exports for use in routers
 export type Source = typeof sources.$inferSelect;
 export type NewSource = typeof sources.$inferInsert;
@@ -48,3 +58,5 @@ export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type Rule = typeof rules.$inferSelect;
 export type NewRule = typeof rules.$inferInsert;
+export type NoisePhrase = typeof noisePhrases.$inferSelect;
+export type NewNoisePhrase = typeof noisePhrases.$inferInsert;

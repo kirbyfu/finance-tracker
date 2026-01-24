@@ -1,0 +1,15 @@
+## Task 1: Schema - DONE
+
+Added noise_phrases table + cleaned_description column to transactions.
+
+- Added `uniqueIndex` import to drizzle-orm/sqlite-core
+- Added `cleanedDescription: text('cleaned_description')` to transactions table
+- Added `noisePhrases` table with id, phrase, sourceId, createdAt
+- Added unique index on (phrase, sourceId)
+- Added NoisePhrase/NewNoisePhrase type exports
+- Ran db:push, populated 1090 existing rows with cleaned_description = description
+
+Files changed:
+- packages/server/src/db/schema.ts
+
+All 34 tests pass. Types check.

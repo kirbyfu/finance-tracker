@@ -14,7 +14,7 @@ Improve pattern suggestion strategy to provide multiple, broader suggestions ins
 
 ## Tasks (Priority Order)
 
-### Task 1: Schema - Add noise_phrases table and cleaned_description column
+### Task 1: Schema - Add noise_phrases table and cleaned_description column ✅ DONE
 **Priority: 1 (Architecture)**
 
 Add to schema.ts:
