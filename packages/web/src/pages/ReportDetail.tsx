@@ -13,14 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import {
   BarChart,
   Bar,
@@ -476,74 +469,17 @@ export function ReportDetail() {
             </Card>
           </div>
 
-          {/* Breakdown Table */}
+          {/* Category Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle>Category Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">% of Expenses</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {monthlyData
-                    ?.filter(d => !d.isTransfer)
-                    .sort((a, b) => a.total - b.total)
-                    .map((item) => {
-                      const totalExpenses = Math.abs(monthlyTotals.expenses);
-                      const percentage = totalExpenses > 0
-                        ? ((Math.abs(item.total) / totalExpenses) * 100).toFixed(1)
-                        : '0';
-                      return (
-                        <TableRow
-                          key={item.categoryId ?? 'uncategorized'}
-                          className="cursor-pointer hover:bg-muted/50"
-                        >
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, true)}
-                              className="flex items-center gap-2 p-4 w-full"
-                            >
-                              <div
-                                className="w-3 h-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: categoryColorMap.get(item.categoryId) || '#6b7280' }}
-                              />
-                              <span className="font-medium">{item.categoryName}</span>
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, true)}
-                              className={`block p-4 text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
-                            >
-                              {formatCurrency(item.total)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, true)}
-                              className="block p-4 text-right text-muted-foreground"
-                            >
-                              {item.total < 0 ? `${percentage}%` : '-'}
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  {(!monthlyData || monthlyData.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground">
-                        No transactions for this period
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <CategoryBreakdown
+                data={monthlyData || []}
+                categoryColorMap={categoryColorMap}
+                buildUrl={(categoryId) => buildTransactionUrl(categoryId, true)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -692,84 +628,18 @@ export function ReportDetail() {
             </Card>
           </div>
 
-          {/* Annual Breakdown Table */}
+          {/* Annual Category Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle>Annual Category Breakdown</CardTitle>
+              <CardTitle>Category Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Monthly Avg</TableHead>
-                    <TableHead className="text-right">% of Expenses</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {annualData
-                    ?.filter(d => !d.isTransfer)
-                    .sort((a, b) => a.total - b.total)
-                    .map((item) => {
-                      const totalExpenses = Math.abs(annualTotals.expenses);
-                      const percentage = totalExpenses > 0
-                        ? ((Math.abs(item.total) / totalExpenses) * 100).toFixed(1)
-                        : '0';
-                      const monthlyAvg = item.total / 12;
-                      return (
-                        <TableRow
-                          key={item.categoryId ?? 'uncategorized'}
-                          className="cursor-pointer hover:bg-muted/50"
-                        >
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className="flex items-center gap-2 p-4 w-full"
-                            >
-                              <div
-                                className="w-3 h-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: categoryColorMap.get(item.categoryId) || '#6b7280' }}
-                              />
-                              <span className="font-medium">{item.categoryName}</span>
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className={`block p-4 text-right ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
-                            >
-                              {formatCurrency(item.total)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className={`block p-4 text-right ${monthlyAvg < 0 ? 'text-red-600' : 'text-green-600'}`}
-                            >
-                              {formatCurrency(monthlyAvg)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="p-0">
-                            <Link
-                              to={buildTransactionUrl(item.categoryId, false)}
-                              className="block p-4 text-right text-muted-foreground"
-                            >
-                              {item.total < 0 ? `${percentage}%` : '-'}
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  {(!annualData || annualData.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No transactions for this year
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <CategoryBreakdown
+                data={annualData || []}
+                categoryColorMap={categoryColorMap}
+                buildUrl={(categoryId) => buildTransactionUrl(categoryId, false)}
+                showMonthlyAvg
+              />
             </CardContent>
           </Card>
         </TabsContent>

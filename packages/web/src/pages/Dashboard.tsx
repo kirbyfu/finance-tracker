@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -310,44 +311,17 @@ export function Dashboard() {
       </div>
 
       {/* Top Categories */}
-      {pieChartData.length > 0 && (
+      {monthlyData && monthlyData.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Top Spending Categories</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {pieChartData.slice(0, 5).map((item, index) => {
-                const total = pieChartData.reduce((sum, i) => sum + i.value, 0);
-                const percentage = ((item.value / total) * 100).toFixed(1);
-                return (
-                  <div key={index} className="flex items-center gap-4">
-                    <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: categoryColorMap.get(item.categoryId) || COLORS[index] }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium truncate">{item.name}</span>
-                        <span className="text-sm text-muted-foreground">{percentage}%</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${percentage}%`,
-                            backgroundColor: categoryColorMap.get(item.categoryId) || COLORS[index],
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <span className="font-medium w-24 text-right">
-                      {formatCurrency(item.value)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <CategoryBreakdown
+              data={monthlyData}
+              categoryColorMap={categoryColorMap}
+              limit={5}
+            />
           </CardContent>
         </Card>
       )}
