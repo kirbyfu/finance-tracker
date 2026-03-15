@@ -92,10 +92,7 @@ export function Import() {
   const previewMutation = trpc.transactions.preview.useMutation();
   const importMutation = trpc.transactions.import.useMutation();
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  function readFile(file: File) {
     setFileName(file.name);
     setPreview(null);
     setResult(null);
@@ -110,6 +107,17 @@ export function Import() {
       setError('Failed to read file');
     };
     reader.readAsText(file);
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) readFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) readFile(file);
   }
 
   async function handlePreview() {
@@ -459,6 +467,8 @@ export function Import() {
                 />
                 <div
                   onClick={handleBrowseClick}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
                   className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
                 >
                   {fileName ? (
