@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -10,24 +11,68 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, Eye, ArrowLeft } from 'lucide-react';
+
+interface ParsedTx {
+  date: string;
+  amount: number;
+  description: string;
+  balance: number | null;
+}
+
+interface ExistingTx {
+  id: number;
+  date: string;
+  amount: number;
+  description: string;
+  balance: number | null;
+}
+
+interface PreviewData {
+  parsed: ParsedTx[];
+  existing: ExistingTx[];
+  duplicateIndices: number[];
+}
 
 interface ImportResult {
   imported: number;
-  duplicates: number;
+  skipped: number;
   uncategorized: number;
+}
+
+function formatAmount(amount: number) {
+  return amount < 0
+    ? `-$${Math.abs(amount).toFixed(2)}`
+    : `$${amount.toFixed(2)}`;
+}
+
+function formatDate(date: string) {
+  const [y, m, d] = date.split('-');
+  return `${d}/${m}/${y}`;
 }
 
 export function Import() {
   const [selectedSourceId, setSelectedSourceId] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [csvContent, setCsvContent] = useState<string>('');
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: sources, isLoading: sourcesLoading } = trpc.sources.list.useQuery();
+  const previewMutation = trpc.transactions.preview.useMutation();
   const importMutation = trpc.transactions.import.useMutation();
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -35,6 +80,7 @@ export function Import() {
     if (!file) return;
 
     setFileName(file.name);
+    setPreview(null);
     setResult(null);
     setError(null);
 
@@ -49,20 +95,48 @@ export function Import() {
     reader.readAsText(file);
   }
 
+  async function handlePreview() {
+    if (!selectedSourceId || !csvContent) return;
+
+    setIsPreviewing(true);
+    setPreview(null);
+    setResult(null);
+    setError(null);
+
+    try {
+      const data = await previewMutation.mutateAsync({
+        sourceId: parseInt(selectedSourceId),
+        csvContent,
+      });
+      setPreview(data);
+      // Select all non-duplicate indices by default
+      const dupSet = new Set(data.duplicateIndices);
+      const initial = new Set<number>();
+      data.parsed.forEach((_, i) => {
+        if (!dupSet.has(i)) initial.add(i);
+      });
+      setSelectedIndices(initial);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Preview failed');
+    } finally {
+      setIsPreviewing(false);
+    }
+  }
+
   async function handleImport() {
     if (!selectedSourceId || !csvContent) return;
 
     setIsImporting(true);
-    setResult(null);
     setError(null);
 
     try {
       const importResult = await importMutation.mutateAsync({
         sourceId: parseInt(selectedSourceId),
         csvContent,
+        selectedIndices: Array.from(selectedIndices),
       });
-      setResult({ ...importResult, duplicates: 0 });
-      // Reset file selection after successful import
+      setResult(importResult);
+      setPreview(null);
       setFileName('');
       setCsvContent('');
       if (fileInputRef.current) {
@@ -75,11 +149,182 @@ export function Import() {
     }
   }
 
+  function toggleIndex(index: number) {
+    setSelectedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    if (!preview) return;
+    setSelectedIndices(new Set(preview.parsed.map((_, i) => i)));
+  }
+
+  function deselectAll() {
+    setSelectedIndices(new Set());
+  }
+
+  function handleBack() {
+    setPreview(null);
+    setError(null);
+  }
+
   function handleBrowseClick() {
     fileInputRef.current?.click();
   }
 
   const selectedSource = sources?.find(s => s.id === parseInt(selectedSourceId));
+  const dupSet = useMemo(() => preview ? new Set(preview.duplicateIndices) : new Set<number>(), [preview]);
+
+  // If we have a preview, show the two-column dedup view
+  if (preview) {
+    const hasOverlap = preview.existing.length > 0;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Review Import</h1>
+            <p className="text-muted-foreground text-sm">
+              {preview.parsed.length} transactions parsed from {fileName || 'CSV'}
+              {preview.duplicateIndices.length > 0 && (
+                <> &mdash; {preview.duplicateIndices.length} likely duplicate{preview.duplicateIndices.length !== 1 ? 's' : ''} detected</>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 text-destructive">
+            <XCircle className="h-5 w-5 mt-0.5" />
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
+        <div className={`grid gap-4 ${hasOverlap ? 'lg:grid-cols-2' : ''}`}>
+          {hasOverlap && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Existing Transactions</CardTitle>
+                <CardDescription>
+                  {preview.existing.length} transaction{preview.existing.length !== 1 ? 's' : ''} already in database for the overlap period
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-[60vh] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-24">Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right w-24">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {preview.existing.map((tx) => (
+                        <TableRow key={tx.id}>
+                          <TableCell className="text-xs">{formatDate(tx.date)}</TableCell>
+                          <TableCell className="text-xs truncate max-w-[200px]">{tx.description}</TableCell>
+                          <TableCell className={`text-xs text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {formatAmount(tx.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Incoming Transactions</CardTitle>
+                  <CardDescription>
+                    {selectedIndices.size} of {preview.parsed.length} selected for import
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={selectAll}>All</Button>
+                  <Button variant="outline" size="sm" onClick={deselectAll}>None</Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-[60vh] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead className="w-24">Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right w-24">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {preview.parsed.map((tx, i) => {
+                      const isDup = dupSet.has(i);
+                      const isSelected = selectedIndices.has(i);
+                      return (
+                        <TableRow
+                          key={i}
+                          className={isDup && !isSelected ? 'opacity-50' : ''}
+                        >
+                          <TableCell className="pr-0">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleIndex(i)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {formatDate(tx.date)}
+                            {isDup && (
+                              <span className="ml-1 text-amber-500 text-[10px] font-medium" title="Likely duplicate">dup</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs truncate max-w-[200px]">{tx.description}</TableCell>
+                          <TableCell className={`text-xs text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {formatAmount(tx.amount)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={handleBack}>Cancel</Button>
+          <Button
+            onClick={handleImport}
+            disabled={selectedIndices.size === 0 || isImporting}
+          >
+            {isImporting ? (
+              <>
+                <Upload className="h-4 w-4 mr-2 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Import {selectedIndices.size} Transaction{selectedIndices.size !== 1 ? 's' : ''}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -101,7 +346,7 @@ export function Import() {
           <CardContent className="space-y-4">
             <div>
               <Label>Source</Label>
-              <Select value={selectedSourceId} onValueChange={setSelectedSourceId}>
+              <Select value={selectedSourceId} onValueChange={(v) => { setSelectedSourceId(v); setPreview(null); setResult(null); }}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select a source..." />
                 </SelectTrigger>
@@ -168,19 +413,19 @@ export function Import() {
             </div>
 
             <Button
-              onClick={handleImport}
-              disabled={!selectedSourceId || !csvContent || isImporting}
+              onClick={handlePreview}
+              disabled={!selectedSourceId || !csvContent || isPreviewing}
               className="w-full"
             >
-              {isImporting ? (
+              {isPreviewing ? (
                 <>
-                  <Upload className="h-4 w-4 mr-2 animate-spin" />
-                  Importing...
+                  <Eye className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
                 </>
               ) : (
                 <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import Transactions
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview &amp; Check for Duplicates
                 </>
               )}
             </Button>
@@ -223,8 +468,8 @@ export function Import() {
                     <span className="font-medium">{result.imported}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted">
-                    <span className="text-sm">Duplicates Skipped</span>
-                    <span className="font-medium">{result.duplicates}</span>
+                    <span className="text-sm">Skipped</span>
+                    <span className="font-medium">{result.skipped}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted">
                     <div className="flex items-center gap-2">

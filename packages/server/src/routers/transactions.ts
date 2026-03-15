@@ -2,9 +2,53 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { db, transactions, sources } from '../db';
 import { eq, isNull, desc, asc, and, or, gte, lte, like, SQL } from 'drizzle-orm';
-import { parseCSV } from '../services/csv-parser';
+import { parseCSV, ParsedTransaction } from '../services/csv-parser';
 import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
 import { getPhrasesForSource, cleanDescription } from '../services/noise-phrases';
+
+function findDuplicateIndices(
+  parsed: ParsedTransaction[],
+  existing: { date: string; amount: number; description: string }[],
+): number[] {
+  // Build a set of existing (date, amount) pairs for fast lookup
+  const existingByDateAmount = new Map<string, string[]>();
+  for (const tx of existing) {
+    const key = `${tx.date}|${tx.amount}`;
+    if (!existingByDateAmount.has(key)) existingByDateAmount.set(key, []);
+    existingByDateAmount.get(key)!.push(tx.description.toLowerCase());
+  }
+
+  const duplicateIndices: number[] = [];
+  // Track which existing txns have been matched to avoid double-matching
+  const matchedExisting = new Set<string>();
+
+  for (let i = 0; i < parsed.length; i++) {
+    const tx = parsed[i];
+    const key = `${tx.date}|${tx.amount}`;
+    const candidates = existingByDateAmount.get(key);
+    if (!candidates) continue;
+
+    // Check if any candidate description matches closely
+    const incomingDesc = tx.description.toLowerCase();
+    for (let j = 0; j < candidates.length; j++) {
+      const matchKey = `${key}|${j}`;
+      if (matchedExisting.has(matchKey)) continue;
+      const existingDesc = candidates[j];
+      // Match if descriptions are equal or one contains the other
+      if (
+        existingDesc === incomingDesc ||
+        existingDesc.includes(incomingDesc) ||
+        incomingDesc.includes(existingDesc)
+      ) {
+        duplicateIndices.push(i);
+        matchedExisting.add(matchKey);
+        break;
+      }
+    }
+  }
+
+  return duplicateIndices;
+}
 
 const listInputSchema = z.object({
   sourceId: z.number().optional(),
@@ -66,7 +110,7 @@ export const transactionsRouter = router({
       return query;
     }),
 
-  import: publicProcedure
+  preview: publicProcedure
     .input(z.object({
       sourceId: z.number(),
       csvContent: z.string(),
@@ -78,13 +122,65 @@ export const transactionsRouter = router({
       const columnMapping = JSON.parse(source.columnMapping);
       const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
 
+      if (parsed.length === 0) return { parsed: [], existing: [], duplicateIndices: [] };
+
+      // Find date range of incoming transactions
+      const dates = parsed.map(t => t.date).sort();
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      // Fetch existing transactions for this source in the overlap window
+      const existing = await db
+        .select({
+          id: transactions.id,
+          date: transactions.date,
+          amount: transactions.amount,
+          description: transactions.description,
+          balance: transactions.balance,
+        })
+        .from(transactions)
+        .where(and(
+          eq(transactions.sourceId, input.sourceId),
+          gte(transactions.date, minDate),
+          lte(transactions.date, maxDate),
+        ))
+        .orderBy(asc(transactions.date));
+
+      const duplicateIndices = findDuplicateIndices(parsed, existing);
+
+      return { parsed, existing, duplicateIndices };
+    }),
+
+  import: publicProcedure
+    .input(z.object({
+      sourceId: z.number(),
+      csvContent: z.string(),
+      selectedIndices: z.array(z.number()).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const source = await db.select().from(sources).where(eq(sources.id, input.sourceId)).get();
+      if (!source) throw new Error('Source not found');
+
+      const columnMapping = JSON.parse(source.columnMapping);
+      const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
+
       // Fetch noise phrases for this source (global + source-specific)
       const noisePhrases = await getPhrasesForSource(input.sourceId);
 
+      // If selectedIndices provided, only import those
+      const selectedSet = input.selectedIndices ? new Set(input.selectedIndices) : null;
+
       let imported = 0;
       let uncategorized = 0;
+      let skipped = 0;
 
-      for (const tx of parsed) {
+      for (let i = 0; i < parsed.length; i++) {
+        if (selectedSet && !selectedSet.has(i)) {
+          skipped++;
+          continue;
+        }
+
+        const tx = parsed[i];
         // Categorize
         const categoryId = await categorizeTransaction(tx.description, input.sourceId);
         if (!categoryId) uncategorized++;
@@ -106,7 +202,7 @@ export const transactionsRouter = router({
         imported++;
       }
 
-      return { imported, uncategorized };
+      return { imported, skipped, uncategorized };
     }),
 
   update: publicProcedure
