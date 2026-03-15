@@ -1,9 +1,6 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { trpc } from '@/lib/trpc';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CategoryBreakdown } from '@/components/CategoryBreakdown';
-import { Button } from '@/components/ui/button';
+import { CategoryBreakdown } from "@/components/CategoryBreakdown";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,40 +8,73 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
+import { trpc } from "@/lib/trpc";
 import {
-  PieChart,
-  Pie,
+  AlertCircle,
+  ArrowRight,
+  Receipt,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import {
   Cell,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
-  Legend,
-} from 'recharts';
-import { TrendingDown, TrendingUp, AlertCircle, Receipt, ArrowRight } from 'lucide-react';
+} from "recharts";
 
 const COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#6b7280',
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#eab308",
+  "#84cc16",
+  "#22c55e",
+  "#10b981",
+  "#14b8a6",
+  "#06b6d4",
+  "#0ea5e9",
+  "#3b82f6",
+  "#6366f1",
+  "#8b5cf6",
+  "#a855f7",
+  "#d946ef",
+  "#ec4899",
+  "#f43f5e",
+  "#6b7280",
 ];
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 2,
   }).format(amount);
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const [, m, d] = dateStr.split("-");
+  return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`;
 }
 
 export function Dashboard() {
@@ -59,32 +89,34 @@ export function Dashboard() {
     categories?.forEach((cat) => {
       map.set(cat.id, cat.color || COLORS[0]);
     });
-    map.set(null, '#6b7280'); // Uncategorized
+    map.set(null, "#6b7280"); // Uncategorized
     return map;
   }, [categories]);
 
-
   // Monthly report for current month
-  const { data: monthlyData, isLoading: monthlyLoading } = trpc.reports.monthly.useQuery({
-    year,
-    month,
-  });
+  const { data: monthlyData, isLoading: monthlyLoading } =
+    trpc.reports.monthly.useQuery({
+      year,
+      month,
+    });
 
   // Recent transactions
-  const { data: recentTransactions, isLoading: transactionsLoading } = trpc.transactions.list.useQuery({
-    limit: 10,
-    offset: 0,
-  });
+  const { data: recentTransactions, isLoading: transactionsLoading } =
+    trpc.transactions.list.useQuery({
+      limit: 10,
+      offset: 0,
+    });
 
   // Uncategorized count
-  const { data: uncategorizedTransactions } = trpc.transactions.uncategorized.useQuery();
+  const { data: uncategorizedTransactions } =
+    trpc.transactions.uncategorized.useQuery();
 
   // Process data for pie chart
   const pieChartData = useMemo(() => {
     if (!monthlyData) return [];
     return monthlyData
-      .filter(item => !item.isTransfer && item.total < 0)
-      .map(item => ({
+      .filter((item) => !item.isTransfer && item.total < 0)
+      .map((item) => ({
         name: item.categoryName,
         value: Math.abs(item.total),
         categoryId: item.categoryId,
@@ -98,17 +130,19 @@ export function Dashboard() {
     if (!monthlyData) return { expenses: 0, income: 0 };
     return {
       expenses: monthlyData
-        .filter(d => !d.isTransfer && d.total < 0)
+        .filter((d) => !d.isTransfer && d.total < 0)
         .reduce((sum, d) => sum + d.total, 0),
       income: monthlyData
-        .filter(d => !d.isTransfer && d.total > 0)
+        .filter((d) => !d.isTransfer && d.total > 0)
         .reduce((sum, d) => sum + d.total, 0),
     };
   }, [monthlyData]);
 
   const uncategorizedCount = uncategorizedTransactions?.length || 0;
 
-  function getEffectiveCategoryId(tx: NonNullable<typeof recentTransactions>[number]): number | null {
+  function getEffectiveCategoryId(
+    tx: NonNullable<typeof recentTransactions>[number],
+  ): number | null {
     return tx.manualCategoryId ?? tx.categoryId;
   }
 
@@ -133,16 +167,16 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Expenses
+            </CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
               {formatCurrency(monthlyTotals.expenses)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
 
@@ -155,9 +189,7 @@ export function Dashboard() {
             <div className="text-2xl font-bold text-green-600">
               {formatCurrency(monthlyTotals.income)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
 
@@ -167,30 +199,39 @@ export function Dashboard() {
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${monthlyTotals.expenses + monthlyTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div
+              className={`text-2xl font-bold ${monthlyTotals.expenses + monthlyTotals.income >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
               {formatCurrency(monthlyTotals.expenses + monthlyTotals.income)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
 
-        <Card className={uncategorizedCount > 0 ? 'border-amber-500' : ''}>
+        <Card className={uncategorizedCount > 0 ? "border-amber-500" : ""}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Uncategorized</CardTitle>
-            <AlertCircle className={`h-4 w-4 ${uncategorizedCount > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
+            <AlertCircle
+              className={`h-4 w-4 ${uncategorizedCount > 0 ? "text-amber-500" : "text-muted-foreground"}`}
+            />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${uncategorizedCount > 0 ? 'text-amber-500' : ''}`}>
+            <div
+              className={`text-2xl font-bold ${uncategorizedCount > 0 ? "text-amber-500" : ""}`}
+            >
               {uncategorizedCount}
             </div>
             <p className="text-xs text-muted-foreground">
-              {uncategorizedCount === 1 ? 'Transaction needs review' : 'Transactions need review'}
+              {uncategorizedCount === 1
+                ? "Transaction needs review"
+                : "Transactions need review"}
             </p>
             {uncategorizedCount > 0 && (
               <Link to="/transactions?uncategorized=true">
-                <Button variant="link" className="p-0 h-auto text-amber-600 text-xs">
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-amber-600 text-xs"
+                >
                   Review now
                 </Button>
               </Link>
@@ -225,14 +266,17 @@ export function Dashboard() {
                     cy="50%"
                     outerRadius={100}
                     label={({ percent }) =>
-                      percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''
+                      percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ""
                     }
                     labelLine={false}
                   >
                     {pieChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={categoryColorMap.get(entry.categoryId) || COLORS[index % COLORS.length]}
+                        fill={
+                          categoryColorMap.get(entry.categoryId) ||
+                          COLORS[index % COLORS.length]
+                        }
                       />
                     ))}
                   </Pie>
@@ -264,7 +308,7 @@ export function Dashboard() {
               </div>
             ) : !recentTransactions || recentTransactions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No transactions yet.{' '}
+                No transactions yet.{" "}
                 <Link to="/import" className="text-primary hover:underline">
                   Import some data
                 </Link>
@@ -290,14 +334,22 @@ export function Dashboard() {
                           <div className="flex items-center gap-2">
                             <div
                               className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: categoryColorMap.get(categoryId) || '#6b7280' }}
+                              style={{
+                                backgroundColor:
+                                  categoryColorMap.get(categoryId) || "#6b7280",
+                              }}
                             />
-                            <span className="truncate max-w-[200px]" title={tx.description}>
+                            <span
+                              className="truncate max-w-[200px]"
+                              title={tx.description}
+                            >
                               {tx.description}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className={`text-right font-medium ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        <TableCell
+                          className={`text-right font-medium ${tx.amount < 0 ? "text-red-600" : "text-green-600"}`}
+                        >
                           {formatCurrency(tx.amount)}
                         </TableCell>
                       </TableRow>

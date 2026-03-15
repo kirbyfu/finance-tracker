@@ -1,30 +1,36 @@
-import { useRef, useState, useMemo, useCallback, memo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { trpc } from '@/lib/trpc';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { CreateRulePanel } from "@/components/CreateRulePanel";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Trash2, ChevronLeft, ChevronRight, ChevronsLeft, Wand2 } from 'lucide-react';
-import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
-import { CreateRulePanel } from '@/components/CreateRulePanel';
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { trpc } from "@/lib/trpc";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  Trash2,
+  Wand2,
+} from "lucide-react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const PAGE_SIZE_OPTIONS = [
-  { value: '100', label: '100' },
-  { value: '1000', label: '1000' },
-  { value: 'all', label: 'All' },
+  { value: "100", label: "100" },
+  { value: "1000", label: "1000" },
+  { value: "all", label: "All" },
 ] as const;
 
-type PageSizeValue = (typeof PAGE_SIZE_OPTIONS)[number]['value'];
+type PageSizeValue = (typeof PAGE_SIZE_OPTIONS)[number]["value"];
 
 interface Transaction {
   id: number;
@@ -37,11 +43,25 @@ interface Transaction {
   notes: string | null;
 }
 
-const GRID_COLS = '40px 120px 1fr 100px 155px 120px 180px 80px';
+const GRID_COLS = "40px 120px 1fr 100px 155px 120px 180px 80px";
 
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 function formatDateStr(dateStr: string) {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const [y, m, d] = dateStr.split("-");
+  return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
 }
 
 function formatAmountNum(amount: number) {
@@ -80,11 +100,14 @@ const Row = memo(function Row({
 
   return (
     <div
-      className={`h-full grid items-center text-sm border-b cursor-pointer hover:bg-muted/50 select-none ${isSelected ? 'bg-muted' : ''}`}
+      className={`h-full grid items-center text-sm border-b cursor-pointer hover:bg-muted/50 select-none ${isSelected ? "bg-muted" : ""}`}
       style={{ gridTemplateColumns: GRID_COLS }}
       onClick={(e) => onSelect(tx.id, index, e)}
     >
-      <div className="px-3 flex items-center" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="px-3 flex items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
         <input
           type="checkbox"
           checked={isSelected}
@@ -94,24 +117,42 @@ const Row = memo(function Row({
       </div>
       <div className="px-3">{formatDateStr(tx.date)}</div>
       <div className="px-3 truncate">{tx.description}</div>
-      <div className={`px-3 text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+      <div
+        className={`px-3 text-right ${tx.amount < 0 ? "text-red-600" : "text-green-600"}`}
+      >
         {formatAmountNum(tx.amount)}
       </div>
       <div
         className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate flex items-center gap-2"
-        onClick={(e) => { e.stopPropagation(); onCategoryClick(tx.id); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onCategoryClick(tx.id);
+        }}
       >
-        {categoryColor && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: categoryColor }} />}
+        {categoryColor && (
+          <div
+            className="w-3 h-3 rounded-full flex-shrink-0"
+            style={{ backgroundColor: categoryColor }}
+          />
+        )}
         {categoryName}
       </div>
       <div className="px-3 text-muted-foreground truncate">{sourceName}</div>
       <div
         className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate"
-        onClick={(e) => { e.stopPropagation(); onNoteClick(tx.id, tx.notes); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onNoteClick(tx.id, tx.notes);
+        }}
       >
-        {tx.notes || <span className="text-muted-foreground/50">Add note...</span>}
+        {tx.notes || (
+          <span className="text-muted-foreground/50">Add note...</span>
+        )}
       </div>
-      <div className="px-3 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="px-3 flex items-center gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
         {!effectiveCategoryId && (
           <button
             className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary"
@@ -137,33 +178,40 @@ export function Transactions() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [noteValue, setNoteValue] = useState('');
+  const [noteValue, setNoteValue] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [ruleTransaction, setRuleTransaction] = useState<Transaction | null>(null);
+  const [ruleTransaction, setRuleTransaction] = useState<Transaction | null>(
+    null,
+  );
   const lastClickedIndexRef = useRef<number | null>(null);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSizeValue>('100');
+  const [pageSize, setPageSize] = useState<PageSizeValue>("100");
 
   // Parse URL params
   const filters = {
-    sourceId: searchParams.get('sourceId') ? Number(searchParams.get('sourceId')) : undefined,
-    categoryId: searchParams.get('categoryId') === 'uncategorized'
-      ? undefined
-      : searchParams.get('categoryId')
-        ? Number(searchParams.get('categoryId'))
-        : undefined,
-    uncategorizedOnly: searchParams.get('categoryId') === 'uncategorized' || searchParams.get('uncategorizedOnly') === 'true',
-    startDate: searchParams.get('startDate') || undefined,
-    endDate: searchParams.get('endDate') || undefined,
-    search: searchParams.get('search') || undefined,
-    sort: (searchParams.get('sort') as 'date' | 'amount') || 'date',
-    order: (searchParams.get('order') as 'asc' | 'desc') || 'desc',
+    sourceId: searchParams.get("sourceId")
+      ? Number(searchParams.get("sourceId"))
+      : undefined,
+    categoryId:
+      searchParams.get("categoryId") === "uncategorized"
+        ? undefined
+        : searchParams.get("categoryId")
+          ? Number(searchParams.get("categoryId"))
+          : undefined,
+    uncategorizedOnly:
+      searchParams.get("categoryId") === "uncategorized" ||
+      searchParams.get("uncategorizedOnly") === "true",
+    startDate: searchParams.get("startDate") || undefined,
+    endDate: searchParams.get("endDate") || undefined,
+    search: searchParams.get("search") || undefined,
+    sort: (searchParams.get("sort") as "date" | "amount") || "date",
+    order: (searchParams.get("order") as "asc" | "desc") || "desc",
   };
 
   const updateFilters = (updates: Partial<typeof filters>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === undefined || value === '' || value === false) {
+      if (value === undefined || value === "" || value === false) {
         newParams.delete(key);
       } else {
         newParams.set(key, String(value));
@@ -173,18 +221,18 @@ export function Transactions() {
     setPage(0);
   };
 
-  const handleSort = (column: 'date' | 'amount') => {
+  const handleSort = (column: "date" | "amount") => {
     if (filters.sort === column) {
-      updateFilters({ order: filters.order === 'asc' ? 'desc' : 'asc' });
+      updateFilters({ order: filters.order === "asc" ? "desc" : "asc" });
     } else {
-      updateFilters({ sort: column, order: 'desc' });
+      updateFilters({ sort: column, order: "desc" });
     }
   };
 
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
-  const numericPageSize = pageSize === 'all' ? undefined : parseInt(pageSize);
+  const numericPageSize = pageSize === "all" ? undefined : parseInt(pageSize);
   const { data: transactions, isLoading } = trpc.transactions.list.useQuery({
     sourceId: filters.sourceId,
     categoryId: filters.categoryId,
@@ -199,14 +247,21 @@ export function Transactions() {
   });
 
   const sourceMap = useMemo(() => {
-    return new Map(sources?.map(s => [s.id, s.name]) || []);
+    return new Map(sources?.map((s) => [s.id, s.name]) || []);
   }, [sources]);
 
   const categoryMap = useMemo(() => {
-    return new Map(categories?.map(c => [c.id, { name: c.name, color: c.color }]) || []);
+    return new Map(
+      categories?.map((c) => [c.id, { name: c.name, color: c.color }]) || [],
+    );
   }, [categories]);
 
-  const hasActiveFilters = filters.categoryId || filters.uncategorizedOnly || filters.startDate || filters.endDate || filters.search;
+  const hasActiveFilters =
+    filters.categoryId ||
+    filters.uncategorizedOnly ||
+    filters.startDate ||
+    filters.endDate ||
+    filters.search;
 
   const getFilterDescription = () => {
     const parts: string[] = [];
@@ -214,24 +269,29 @@ export function Transactions() {
       parts.push(`"${filters.search}"`);
     }
     if (filters.uncategorizedOnly) {
-      parts.push('Uncategorized');
+      parts.push("Uncategorized");
     } else if (filters.categoryId) {
-      parts.push(categoryMap.get(filters.categoryId)?.name || `Category ${filters.categoryId}`);
+      parts.push(
+        categoryMap.get(filters.categoryId)?.name ||
+          `Category ${filters.categoryId}`,
+      );
     }
     if (filters.startDate && filters.endDate) {
-      parts.push(`${new Date(filters.startDate).toLocaleDateString()} - ${new Date(filters.endDate).toLocaleDateString()}`);
+      parts.push(
+        `${formatDateStr(filters.startDate)} - ${formatDateStr(filters.endDate)}`,
+      );
     } else if (filters.startDate) {
-      parts.push(`From ${new Date(filters.startDate).toLocaleDateString()}`);
+      parts.push(`From ${formatDateStr(filters.startDate)}`);
     } else if (filters.endDate) {
-      parts.push(`Until ${new Date(filters.endDate).toLocaleDateString()}`);
+      parts.push(`Until ${formatDateStr(filters.endDate)}`);
     }
-    return parts.join(' | ');
+    return parts.join(" | ");
   };
 
   const clearUrlFilters = () => {
     const newParams = new URLSearchParams();
-    if (filters.sort !== 'date') newParams.set('sort', filters.sort);
-    if (filters.order !== 'desc') newParams.set('order', filters.order);
+    if (filters.sort !== "date") newParams.set("sort", filters.sort);
+    if (filters.order !== "desc") newParams.set("order", filters.order);
     setPage(0);
     setSearchParams(newParams);
   };
@@ -239,42 +299,45 @@ export function Transactions() {
   const selectionTotal = useMemo(() => {
     if (!transactions || selectedIds.size === 0) return 0;
     return transactions
-      .filter(tx => selectedIds.has(tx.id))
+      .filter((tx) => selectedIds.has(tx.id))
       .reduce((sum, tx) => sum + tx.amount, 0);
   }, [transactions, selectedIds]);
 
-  const handleSelectionClick = useCallback((id: number, index: number, event: React.MouseEvent) => {
-    const isShiftKey = event.shiftKey;
-    const isCtrlKey = event.ctrlKey || event.metaKey;
+  const handleSelectionClick = useCallback(
+    (id: number, index: number, event: React.MouseEvent) => {
+      const isShiftKey = event.shiftKey;
+      const isCtrlKey = event.ctrlKey || event.metaKey;
 
-    if (isShiftKey && lastClickedIndexRef.current !== null && transactions) {
-      const start = Math.min(lastClickedIndexRef.current, index);
-      const end = Math.max(lastClickedIndexRef.current, index);
-      const rangeIds = transactions.slice(start, end + 1).map(tx => tx.id);
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        rangeIds.forEach(rangeId => next.add(rangeId));
-        return next;
-      });
-    } else if (isCtrlKey) {
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-        return next;
-      });
-      lastClickedIndexRef.current = index;
-    } else {
-      setSelectedIds(new Set([id]));
-      lastClickedIndexRef.current = index;
-    }
-  }, [transactions]);
+      if (isShiftKey && lastClickedIndexRef.current !== null && transactions) {
+        const start = Math.min(lastClickedIndexRef.current, index);
+        const end = Math.max(lastClickedIndexRef.current, index);
+        const rangeIds = transactions.slice(start, end + 1).map((tx) => tx.id);
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          rangeIds.forEach((rangeId) => next.add(rangeId));
+          return next;
+        });
+      } else if (isCtrlKey) {
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) {
+            next.delete(id);
+          } else {
+            next.add(id);
+          }
+          return next;
+        });
+        lastClickedIndexRef.current = index;
+      } else {
+        setSelectedIds(new Set([id]));
+        lastClickedIndexRef.current = index;
+      }
+    },
+    [transactions],
+  );
 
   const toggleSelection = useCallback((id: number, index: number) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -288,8 +351,8 @@ export function Transactions() {
 
   const toggleSelectAll = useCallback(() => {
     if (!transactions) return;
-    const allIds = transactions.map(tx => tx.id);
-    const allSelected = allIds.every(id => selectedIds.has(id));
+    const allIds = transactions.map((tx) => tx.id);
+    const allSelected = allIds.every((id) => selectedIds.has(id));
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
@@ -310,34 +373,47 @@ export function Transactions() {
     onSuccess: () => utils.transactions.list.invalidate(),
   });
 
-  const bulkUpdateCategoryMutation = trpc.transactions.bulkUpdateCategory.useMutation({
-    onSuccess: () => {
-      utils.transactions.list.invalidate();
-      setSelectedIds(new Set());
+  const bulkUpdateCategoryMutation =
+    trpc.transactions.bulkUpdateCategory.useMutation({
+      onSuccess: () => {
+        utils.transactions.list.invalidate();
+        setSelectedIds(new Set());
+      },
+    });
+
+  const handleCategoryChange = useCallback(
+    (transactionId: number, categoryId: string) => {
+      const manualCategoryId =
+        categoryId === "none" ? null : parseInt(categoryId);
+      updateMutation.mutate({ id: transactionId, manualCategoryId });
     },
-  });
+    [updateMutation],
+  );
 
-  const handleCategoryChange = useCallback((transactionId: number, categoryId: string) => {
-    const manualCategoryId = categoryId === 'none' ? null : parseInt(categoryId);
-    updateMutation.mutate({ id: transactionId, manualCategoryId });
-  }, [updateMutation]);
-
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
+    null,
+  );
 
   const handleCategoryClick = useCallback((id: number) => {
     setEditingCategoryId(id);
   }, []);
 
-  const handleNoteClick = useCallback((id: number, currentNote: string | null) => {
-    setEditingNoteId(id);
-    setNoteValue(currentNote || '');
-  }, []);
+  const handleNoteClick = useCallback(
+    (id: number, currentNote: string | null) => {
+      setEditingNoteId(id);
+      setNoteValue(currentNote || "");
+    },
+    [],
+  );
 
-  const handleSaveNote = useCallback((id: number, note: string) => {
-    updateMutation.mutate({ id, notes: note || null });
-    setEditingNoteId(null);
-    setNoteValue('');
-  }, [updateMutation]);
+  const handleSaveNote = useCallback(
+    (id: number, note: string) => {
+      updateMutation.mutate({ id, notes: note || null });
+      setEditingNoteId(null);
+      setNoteValue("");
+    },
+    [updateMutation],
+  );
 
   const handleDelete = useCallback((id: number) => {
     setDeleteId(id);
@@ -352,8 +428,13 @@ export function Transactions() {
     setPage(0);
   };
 
-  const hasMore = numericPageSize ? transactions?.length === numericPageSize : false;
-  const allSelected = transactions && transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
+  const hasMore = numericPageSize
+    ? transactions?.length === numericPageSize
+    : false;
+  const allSelected =
+    transactions &&
+    transactions.length > 0 &&
+    transactions.every((tx) => selectedIds.has(tx.id));
 
   const virtualizer = useVirtualizer({
     count: transactions?.length ?? 0,
@@ -371,7 +452,9 @@ export function Transactions() {
           onClick={() => recategorizeMutation.mutate()}
           disabled={recategorizeMutation.isPending}
         >
-          {recategorizeMutation.isPending ? 'Recategorizing...' : 'Recategorize All'}
+          {recategorizeMutation.isPending
+            ? "Recategorizing..."
+            : "Recategorize All"}
         </Button>
       </div>
 
@@ -385,7 +468,12 @@ export function Transactions() {
             <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg mb-4">
               <span className="text-sm font-medium">Showing:</span>
               <span className="text-sm">{getFilterDescription()}</span>
-              <Button variant="ghost" size="sm" onClick={clearUrlFilters} className="ml-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearUrlFilters}
+                className="ml-auto"
+              >
                 Clear filters
               </Button>
             </div>
@@ -396,16 +484,22 @@ export function Transactions() {
               <Input
                 type="text"
                 placeholder="Search..."
-                value={filters.search || ''}
-                onChange={(e) => updateFilters({ search: e.target.value || undefined })}
+                value={filters.search || ""}
+                onChange={(e) =>
+                  updateFilters({ search: e.target.value || undefined })
+                }
                 className="mt-1"
               />
             </div>
             <div>
               <Label>Source</Label>
               <Select
-                value={filters.sourceId?.toString() || 'all'}
-                onValueChange={(v) => updateFilters({ sourceId: v === 'all' ? undefined : parseInt(v) })}
+                value={filters.sourceId?.toString() || "all"}
+                onValueChange={(v) =>
+                  updateFilters({
+                    sourceId: v === "all" ? undefined : parseInt(v),
+                  })
+                }
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="All sources" />
@@ -423,8 +517,12 @@ export function Transactions() {
             <div>
               <Label>Category</Label>
               <Select
-                value={filters.categoryId?.toString() || 'all'}
-                onValueChange={(v) => updateFilters({ categoryId: v === 'all' ? undefined : parseInt(v) })}
+                value={filters.categoryId?.toString() || "all"}
+                onValueChange={(v) =>
+                  updateFilters({
+                    categoryId: v === "all" ? undefined : parseInt(v),
+                  })
+                }
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="All categories" />
@@ -432,9 +530,15 @@ export function Transactions() {
                 <SelectContent>
                   <SelectItem value="all">All categories</SelectItem>
                   {categories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
                         {category.name}
                       </div>
                     </SelectItem>
@@ -446,8 +550,10 @@ export function Transactions() {
               <Label>Start Date</Label>
               <Input
                 type="date"
-                value={filters.startDate || ''}
-                onChange={(e) => updateFilters({ startDate: e.target.value || undefined })}
+                value={filters.startDate || ""}
+                onChange={(e) =>
+                  updateFilters({ startDate: e.target.value || undefined })
+                }
                 className="mt-1"
               />
             </div>
@@ -455,8 +561,10 @@ export function Transactions() {
               <Label>End Date</Label>
               <Input
                 type="date"
-                value={filters.endDate || ''}
-                onChange={(e) => updateFilters({ endDate: e.target.value || undefined })}
+                value={filters.endDate || ""}
+                onChange={(e) =>
+                  updateFilters({ endDate: e.target.value || undefined })
+                }
                 className="mt-1"
               />
             </div>
@@ -464,7 +572,9 @@ export function Transactions() {
               <div className="flex items-center gap-2 h-10">
                 <Switch
                   checked={filters.uncategorizedOnly}
-                  onCheckedChange={(checked) => updateFilters({ uncategorizedOnly: checked })}
+                  onCheckedChange={(checked) =>
+                    updateFilters({ uncategorizedOnly: checked })
+                  }
                 />
                 <Label>Uncategorized only</Label>
               </div>
@@ -477,10 +587,13 @@ export function Transactions() {
       <Card className="flex-1 flex flex-col min-h-0">
         <CardContent className="p-0 flex-1 flex flex-col min-h-0">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading transactions...</div>
+            <div className="p-8 text-center text-muted-foreground">
+              Loading transactions...
+            </div>
           ) : transactions?.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              No transactions found. Try adjusting your filters or import some transactions.
+              No transactions found. Try adjusting your filters or import some
+              transactions.
             </div>
           ) : (
             <div className="flex-1 flex flex-col min-h-0">
@@ -499,16 +612,20 @@ export function Transactions() {
                 </div>
                 <div
                   className="px-3 h-12 flex items-center cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('date')}
+                  onClick={() => handleSort("date")}
                 >
-                  Date {filters.sort === 'date' && (filters.order === 'asc' ? '▲' : '▼')}
+                  Date{" "}
+                  {filters.sort === "date" &&
+                    (filters.order === "asc" ? "▲" : "▼")}
                 </div>
                 <div className="px-3 h-12 flex items-center">Description</div>
                 <div
                   className="px-3 h-12 flex items-center justify-end cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('amount')}
+                  onClick={() => handleSort("amount")}
                 >
-                  Amount {filters.sort === 'amount' && (filters.order === 'asc' ? '▲' : '▼')}
+                  Amount{" "}
+                  {filters.sort === "amount" &&
+                    (filters.order === "asc" ? "▲" : "▼")}
                 </div>
                 <div className="px-3 h-12 flex items-center">Category</div>
                 <div className="px-3 h-12 flex items-center">Source</div>
@@ -518,14 +635,24 @@ export function Transactions() {
 
               {/* Body */}
               <div ref={parentRef} className="flex-1 overflow-y-scroll min-h-0">
-                <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                <div
+                  style={{
+                    height: virtualizer.getTotalSize(),
+                    position: "relative",
+                  }}
+                >
                   {virtualizer.getVirtualItems().map((virtualRow) => {
                     const tx = transactions![virtualRow.index];
-                    const effectiveCategoryId = tx.manualCategoryId ?? tx.categoryId;
-                    const category = effectiveCategoryId ? categoryMap.get(effectiveCategoryId) : null;
-                    const categoryName = category?.name || (effectiveCategoryId ? 'Unknown' : 'Uncategorized');
+                    const effectiveCategoryId =
+                      tx.manualCategoryId ?? tx.categoryId;
+                    const category = effectiveCategoryId
+                      ? categoryMap.get(effectiveCategoryId)
+                      : null;
+                    const categoryName =
+                      category?.name ||
+                      (effectiveCategoryId ? "Unknown" : "Uncategorized");
                     const categoryColor = category?.color || null;
-                    const sourceName = sourceMap.get(tx.sourceId) || 'Unknown';
+                    const sourceName = sourceMap.get(tx.sourceId) || "Unknown";
                     return (
                       <div
                         key={tx.id}
@@ -558,16 +685,25 @@ export function Transactions() {
               {/* Pagination */}
               <div className="flex items-center justify-between px-4 py-3 border-t flex-shrink-0">
                 <div className="text-sm text-muted-foreground">
-                  {pageSize === 'all' ? (
+                  {pageSize === "all" ? (
                     <>Showing all {transactions?.length || 0} transactions</>
                   ) : (
-                    <>Showing {page * numericPageSize! + 1} - {page * numericPageSize! + (transactions?.length || 0)} transactions</>
+                    <>
+                      Showing {page * numericPageSize! + 1} -{" "}
+                      {page * numericPageSize! + (transactions?.length || 0)}{" "}
+                      transactions
+                    </>
                   )}
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground">Per page:</Label>
-                    <Select value={pageSize} onValueChange={handlePageSizeChange}>
+                    <Label className="text-sm text-muted-foreground">
+                      Per page:
+                    </Label>
+                    <Select
+                      value={pageSize}
+                      onValueChange={handlePageSizeChange}
+                    >
                       <SelectTrigger className="w-20 h-8">
                         <SelectValue />
                       </SelectTrigger>
@@ -580,16 +716,31 @@ export function Transactions() {
                       </SelectContent>
                     </Select>
                   </div>
-                  {pageSize !== 'all' && (
+                  {pageSize !== "all" && (
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setPage(0)} disabled={page === 0}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(0)}
+                        disabled={page === 0}
+                      >
                         <ChevronsLeft className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(0, p - 1))}
+                        disabled={page === 0}
+                      >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Previous
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={!hasMore}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={!hasMore}
+                      >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
@@ -610,8 +761,12 @@ export function Transactions() {
           </span>
           <Select
             onValueChange={(value) => {
-              const manualCategoryId = value === 'none' ? null : parseInt(value);
-              bulkUpdateCategoryMutation.mutate({ ids: Array.from(selectedIds), manualCategoryId });
+              const manualCategoryId =
+                value === "none" ? null : parseInt(value);
+              bulkUpdateCategoryMutation.mutate({
+                ids: Array.from(selectedIds),
+                manualCategoryId,
+              });
             }}
           >
             <SelectTrigger className="w-40 h-7 bg-secondary text-secondary-foreground border-0">
@@ -622,14 +777,22 @@ export function Transactions() {
               {categories?.map((category) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: category.color }}
+                    />
                     {category.name}
                   </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button variant="secondary" size="sm" onClick={() => setSelectedIds(new Set())} className="h-7">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSelectedIds(new Set())}
+            className="h-7"
+          >
             Clear
           </Button>
         </div>
@@ -641,13 +804,20 @@ export function Transactions() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setEditingCategoryId(null)}
         >
-          <div className="bg-background rounded-lg p-4 shadow-lg min-w-64" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-background rounded-lg p-4 shadow-lg min-w-64"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="font-medium mb-3">Select Category</h3>
             <Select
               defaultValue={
-                transactions?.find(t => t.id === editingCategoryId)?.manualCategoryId?.toString() ||
-                transactions?.find(t => t.id === editingCategoryId)?.categoryId?.toString() ||
-                'none'
+                transactions
+                  ?.find((t) => t.id === editingCategoryId)
+                  ?.manualCategoryId?.toString() ||
+                transactions
+                  ?.find((t) => t.id === editingCategoryId)
+                  ?.categoryId?.toString() ||
+                "none"
               }
               onValueChange={(value) => {
                 handleCategoryChange(editingCategoryId, value);
@@ -662,7 +832,10 @@ export function Transactions() {
                 {categories?.map((category) => (
                   <SelectItem key={category.id} value={category.id.toString()}>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
                       {category.name}
                     </div>
                   </SelectItem>
@@ -685,7 +858,10 @@ export function Transactions() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setEditingNoteId(null)}
         >
-          <div className="bg-background rounded-lg p-4 shadow-lg min-w-80" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-background rounded-lg p-4 shadow-lg min-w-80"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="font-medium mb-3">Edit Note</h3>
             <input
               type="text"
@@ -695,8 +871,8 @@ export function Transactions() {
               placeholder="Add a note..."
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveNote(editingNoteId, noteValue);
-                if (e.key === 'Escape') setEditingNoteId(null);
+                if (e.key === "Enter") handleSaveNote(editingNoteId, noteValue);
+                if (e.key === "Escape") setEditingNoteId(null);
               }}
             />
             <div className="flex gap-2">
