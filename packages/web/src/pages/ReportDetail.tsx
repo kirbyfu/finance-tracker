@@ -4,7 +4,11 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -29,20 +33,54 @@ import {
 } from 'recharts';
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const MONTHS_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 const COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#6b7280',
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#eab308',
+  '#84cc16',
+  '#22c55e',
+  '#10b981',
+  '#14b8a6',
+  '#06b6d4',
+  '#0ea5e9',
+  '#3b82f6',
+  '#6366f1',
+  '#8b5cf6',
+  '#a855f7',
+  '#d946ef',
+  '#ec4899',
+  '#f43f5e',
+  '#6b7280',
 ];
 
 function formatCurrency(amount: number): string {
@@ -62,7 +100,9 @@ export function ReportDetail() {
   const yearParam = searchParams.get('year');
   const monthParam = searchParams.get('month');
   const year = yearParam ? parseInt(yearParam, 10) : currentDate.getFullYear();
-  const month = monthParam ? parseInt(monthParam, 10) : currentDate.getMonth() + 1;
+  const month = monthParam
+    ? parseInt(monthParam, 10)
+    : currentDate.getMonth() + 1;
 
   const setYear = (newYear: number) => {
     setSearchParams((prev) => {
@@ -111,7 +151,8 @@ export function ReportDetail() {
   };
 
   // Disable next buttons if at current month/year
-  const isCurrentMonth = year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
+  const isCurrentMonth =
+    year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
   const isCurrentYear = year === currentDate.getFullYear();
 
   // Get tab from URL, default to 'monthly'
@@ -134,7 +175,10 @@ export function ReportDetail() {
     return map;
   }, [categories]);
 
-  const buildTransactionUrl = (categoryId: number | null, isMonthly: boolean) => {
+  const buildTransactionUrl = (
+    categoryId: number | null,
+    isMonthly: boolean,
+  ) => {
     const params = new URLSearchParams();
 
     if (categoryId === null) {
@@ -164,10 +208,11 @@ export function ReportDetail() {
   };
 
   // Monthly report
-  const { data: monthlyData, isLoading: monthlyLoading } = trpc.reports.monthly.useQuery({
-    year,
-    month,
-  });
+  const { data: monthlyData, isLoading: monthlyLoading } =
+    trpc.reports.monthly.useQuery({
+      year,
+      month,
+    });
 
   // Monthly comparison (last 6 months)
   const { data: monthlyComparison } = trpc.reports.monthlyComparison.useQuery({
@@ -178,9 +223,10 @@ export function ReportDetail() {
   });
 
   // Annual report
-  const { data: annualData, isLoading: annualLoading } = trpc.reports.annual.useQuery({
-    year,
-  });
+  const { data: annualData, isLoading: annualLoading } =
+    trpc.reports.annual.useQuery({
+      year,
+    });
 
   // Annual comparison (last 3 years)
   const { data: annualComparison } = trpc.reports.annualComparison.useQuery({
@@ -192,8 +238,8 @@ export function ReportDetail() {
   const monthlyChartData = useMemo(() => {
     if (!monthlyData) return [];
     return monthlyData
-      .filter(item => !item.isTransfer && item.total < 0)
-      .map(item => ({
+      .filter((item) => !item.isTransfer && item.total < 0)
+      .map((item) => ({
         name: item.categoryName,
         amount: Math.abs(item.total),
         categoryId: item.categoryId,
@@ -203,12 +249,12 @@ export function ReportDetail() {
 
   const monthlyComparisonChartData = useMemo(() => {
     if (!monthlyComparison) return [];
-    return monthlyComparison.map(m => {
+    return monthlyComparison.map((m) => {
       const expenseTotal = m.breakdown
-        .filter(b => !b.isTransfer && b.total < 0)
+        .filter((b) => !b.isTransfer && b.total < 0)
         .reduce((sum, b) => sum + Math.abs(b.total), 0);
       const incomeTotal = m.breakdown
-        .filter(b => b.total > 0)
+        .filter((b) => b.total > 0)
         .reduce((sum, b) => sum + b.total, 0);
       return {
         name: `${MONTHS[m.month - 1].slice(0, 3)} ${m.year}`,
@@ -221,8 +267,8 @@ export function ReportDetail() {
   const annualChartData = useMemo(() => {
     if (!annualData) return [];
     return annualData
-      .filter(item => !item.isTransfer && item.total < 0)
-      .map(item => ({
+      .filter((item) => !item.isTransfer && item.total < 0)
+      .map((item) => ({
         name: item.categoryName,
         amount: Math.abs(item.total),
         categoryId: item.categoryId,
@@ -232,12 +278,12 @@ export function ReportDetail() {
 
   const annualComparisonChartData = useMemo(() => {
     if (!annualComparison) return [];
-    return annualComparison.map(y => {
+    return annualComparison.map((y) => {
       const expenseTotal = y.breakdown
-        .filter(b => !b.isTransfer && b.total < 0)
+        .filter((b) => !b.isTransfer && b.total < 0)
         .reduce((sum, b) => sum + Math.abs(b.total), 0);
       const incomeTotal = y.breakdown
-        .filter(b => b.total > 0)
+        .filter((b) => b.total > 0)
         .reduce((sum, b) => sum + b.total, 0);
       return {
         name: y.year.toString(),
@@ -252,13 +298,13 @@ export function ReportDetail() {
     if (!monthlyData) return { expenses: 0, income: 0, transfers: 0 };
     return {
       expenses: monthlyData
-        .filter(d => !d.isTransfer && d.total < 0)
+        .filter((d) => !d.isTransfer && d.total < 0)
         .reduce((sum, d) => sum + d.total, 0),
       income: monthlyData
-        .filter(d => !d.isTransfer && d.total > 0)
+        .filter((d) => !d.isTransfer && d.total > 0)
         .reduce((sum, d) => sum + d.total, 0),
       transfers: monthlyData
-        .filter(d => d.isTransfer)
+        .filter((d) => d.isTransfer)
         .reduce((sum, d) => sum + d.total, 0),
     };
   }, [monthlyData]);
@@ -267,20 +313,24 @@ export function ReportDetail() {
     if (!annualData) return { expenses: 0, income: 0, transfers: 0 };
     return {
       expenses: annualData
-        .filter(d => !d.isTransfer && d.total < 0)
+        .filter((d) => !d.isTransfer && d.total < 0)
         .reduce((sum, d) => sum + d.total, 0),
       income: annualData
-        .filter(d => !d.isTransfer && d.total > 0)
+        .filter((d) => !d.isTransfer && d.total > 0)
         .reduce((sum, d) => sum + d.total, 0),
       transfers: annualData
-        .filter(d => d.isTransfer)
+        .filter((d) => d.isTransfer)
         .reduce((sum, d) => sum + d.total, 0),
     };
   }, [annualData]);
 
   // Generate year options
   const yearOptions = [];
-  for (let y = currentDate.getFullYear(); y >= currentDate.getFullYear() - 10; y--) {
+  for (
+    let y = currentDate.getFullYear();
+    y >= currentDate.getFullYear() - 10;
+    y--
+  ) {
     yearOptions.push(y);
   }
 
@@ -335,7 +385,10 @@ export function ReportDetail() {
                 </div>
               </PopoverContent>
             </Popover>
-            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
+            <Select
+              value={year.toString()}
+              onValueChange={(v) => setYear(parseInt(v))}
+            >
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>
@@ -391,8 +444,12 @@ export function ReportDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className={`text-2xl font-bold ${monthlyTotals.expenses + monthlyTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(monthlyTotals.expenses + monthlyTotals.income)}
+                <p
+                  className={`text-2xl font-bold ${monthlyTotals.expenses + monthlyTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
+                  {formatCurrency(
+                    monthlyTotals.expenses + monthlyTotals.income,
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -429,7 +486,10 @@ export function ReportDetail() {
                         {monthlyChartData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={categoryColorMap.get(entry.categoryId) || COLORS[index % COLORS.length]}
+                            fill={
+                              categoryColorMap.get(entry.categoryId) ||
+                              COLORS[index % COLORS.length]
+                            }
                           />
                         ))}
                       </Pie>
@@ -458,7 +518,9 @@ export function ReportDetail() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis tickFormatter={(v) => `$${v}`} />
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(value)}
+                      />
                       <Legend />
                       <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
                       <Bar dataKey="income" name="Income" fill="#22c55e" />
@@ -494,7 +556,10 @@ export function ReportDetail() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
+            <Select
+              value={year.toString()}
+              onValueChange={(v) => setYear(parseInt(v))}
+            >
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>
@@ -550,7 +615,9 @@ export function ReportDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className={`text-2xl font-bold ${annualTotals.expenses + annualTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p
+                  className={`text-2xl font-bold ${annualTotals.expenses + annualTotals.income >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
                   {formatCurrency(annualTotals.expenses + annualTotals.income)}
                 </p>
               </CardContent>
@@ -588,7 +655,10 @@ export function ReportDetail() {
                         {annualChartData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={categoryColorMap.get(entry.categoryId) || COLORS[index % COLORS.length]}
+                            fill={
+                              categoryColorMap.get(entry.categoryId) ||
+                              COLORS[index % COLORS.length]
+                            }
                           />
                         ))}
                       </Pie>
@@ -617,7 +687,9 @@ export function ReportDetail() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis tickFormatter={(v) => `$${v}`} />
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(value)}
+                      />
                       <Legend />
                       <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
                       <Bar dataKey="income" name="Income" fill="#22c55e" />
@@ -637,7 +709,9 @@ export function ReportDetail() {
               <CategoryBreakdown
                 data={annualData || []}
                 categoryColorMap={categoryColorMap}
-                buildUrl={(categoryId) => buildTransactionUrl(categoryId, false)}
+                buildUrl={(categoryId) =>
+                  buildTransactionUrl(categoryId, false)
+                }
                 showMonthlyAvg
               />
             </CardContent>

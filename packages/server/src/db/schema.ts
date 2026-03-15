@@ -1,53 +1,85 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 export const sources = sqliteTable('sources', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   type: text('type', { enum: ['bank', 'credit_card'] }).notNull(),
   columnMapping: text('column_mapping').notNull(), // JSON string
-  hasHeaderRow: integer('has_header_row', { mode: 'boolean' }).notNull().default(true),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  hasHeaderRow: integer('has_header_row', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date(),
+  ),
 });
 
 export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  isTransfer: integer('is_transfer', { mode: 'boolean' }).notNull().default(false),
+  isTransfer: integer('is_transfer', { mode: 'boolean' })
+    .notNull()
+    .default(false),
   color: text('color').notNull().default('#6b7280'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date(),
+  ),
 });
 
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  sourceId: integer('source_id').notNull().references(() => sources.id),
+  sourceId: integer('source_id')
+    .notNull()
+    .references(() => sources.id),
   date: text('date').notNull(), // ISO date string YYYY-MM-DD
   amount: real('amount').notNull(),
   description: text('description').notNull(),
   cleanedDescription: text('cleaned_description'),
   balance: real('balance'),
   categoryId: integer('category_id').references(() => categories.id),
-  manualCategoryId: integer('manual_category_id').references(() => categories.id),
+  manualCategoryId: integer('manual_category_id').references(
+    () => categories.id,
+  ),
   notes: text('notes'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date(),
+  ),
 });
 
 export const rules = sqliteTable('rules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   pattern: text('pattern').notNull(),
-  categoryId: integer('category_id').notNull().references(() => categories.id),
+  categoryId: integer('category_id')
+    .notNull()
+    .references(() => categories.id),
   sourceId: integer('source_id').references(() => sources.id),
   priority: integer('priority').notNull().default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date(),
+  ),
 });
 
-export const noisePhrases = sqliteTable('noise_phrases', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  phrase: text('phrase').notNull(), // lowercase/normalized
-  sourceId: integer('source_id').references(() => sources.id, { onDelete: 'cascade' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-}, (table) => [
-  uniqueIndex('noise_phrase_source_idx').on(table.phrase, table.sourceId),
-]);
+export const noisePhrases = sqliteTable(
+  'noise_phrases',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    phrase: text('phrase').notNull(), // lowercase/normalized
+    sourceId: integer('source_id').references(() => sources.id, {
+      onDelete: 'cascade',
+    }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+      () => new Date(),
+    ),
+  },
+  (table) => [
+    uniqueIndex('noise_phrase_source_idx').on(table.phrase, table.sourceId),
+  ],
+);
 
 // Type exports for use in routers
 export type Source = typeof sources.$inferSelect;

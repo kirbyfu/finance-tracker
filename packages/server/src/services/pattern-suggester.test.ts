@@ -21,7 +21,11 @@ describe('PatternSuggesterService', () => {
       .values({
         name: 'Test Bank',
         type: 'bank',
-        columnMapping: JSON.stringify({ date: 'Date', description: 'Description', amount: 'Amount' }),
+        columnMapping: JSON.stringify({
+          date: 'Date',
+          description: 'Description',
+          amount: 'Amount',
+        }),
       })
       .returning();
     sourceId = source.id;
@@ -52,7 +56,7 @@ describe('PatternSuggesterService', () => {
   async function insertTransaction(
     description: string,
     categoryId?: number,
-    cleanedDescription?: string
+    cleanedDescription?: string,
   ) {
     const [tx] = await db
       .insert(transactions)
@@ -87,13 +91,16 @@ describe('PatternSuggesterService', () => {
       expect(result.patterns.length).toBeGreaterThan(0);
       // Should find "anytime fitness" as a pattern
       const anytimeFitnessPattern = result.patterns.find(
-        (p) => p.pattern.toLowerCase().includes('anytime') && p.pattern.toLowerCase().includes('fitness')
+        (p) =>
+          p.pattern.toLowerCase().includes('anytime') &&
+          p.pattern.toLowerCase().includes('fitness'),
       );
       expect(anytimeFitnessPattern).toBeDefined();
 
       // Should have at least 3 matches total (uncategorized + categorized)
       const totalMatches =
-        (anytimeFitnessPattern?.uncategorizedCount ?? 0) + (anytimeFitnessPattern?.categorizedCount ?? 0);
+        (anytimeFitnessPattern?.uncategorizedCount ?? 0) +
+        (anytimeFitnessPattern?.categorizedCount ?? 0);
       expect(totalMatches).toBeGreaterThanOrEqual(3);
     });
 
@@ -111,9 +118,9 @@ describe('PatternSuggesterService', () => {
       expect(result.patterns.length).toBeGreaterThanOrEqual(2);
       // First pattern should have more uncategorized matches than later ones
       for (let i = 1; i < result.patterns.length; i++) {
-        expect(result.patterns[i - 1].uncategorizedCount).toBeGreaterThanOrEqual(
-          result.patterns[i].uncategorizedCount
-        );
+        expect(
+          result.patterns[i - 1].uncategorizedCount,
+        ).toBeGreaterThanOrEqual(result.patterns[i].uncategorizedCount);
       }
     });
 
@@ -132,7 +139,7 @@ describe('PatternSuggesterService', () => {
 
       // The result should include "anytime fitness" (multi-word)
       const hasAnytimeFitness = result.patterns.some(
-        (p) => p.pattern.includes('anytime') && p.pattern.includes('fitness')
+        (p) => p.pattern.includes('anytime') && p.pattern.includes('fitness'),
       );
       expect(hasAnytimeFitness).toBe(true);
     });
@@ -148,7 +155,9 @@ describe('PatternSuggesterService', () => {
       const result = await getSuggestions(target.id);
 
       // Find the amazon pattern
-      const amazonPattern = result.patterns.find((p) => p.pattern.toLowerCase().includes('amazon'));
+      const amazonPattern = result.patterns.find((p) =>
+        p.pattern.toLowerCase().includes('amazon'),
+      );
       expect(amazonPattern).toBeDefined();
       expect(amazonPattern!.uncategorizedCount).toBe(3);
       expect(amazonPattern!.categorizedCount).toBe(2);
@@ -166,8 +175,8 @@ describe('PatternSuggesterService', () => {
       // Should detect noise
       expect(result.detectedNoise.length).toBeGreaterThan(0);
       // "payment by authority" should be detected as noise
-      const hasPaymentNoise = result.detectedNoise.some(
-        (n) => n.phrase.includes('payment')
+      const hasPaymentNoise = result.detectedNoise.some((n) =>
+        n.phrase.includes('payment'),
       );
       expect(hasPaymentNoise).toBe(true);
     });
@@ -183,7 +192,7 @@ describe('PatternSuggesterService', () => {
           'Unique5 pattern5 Unique6 pattern6 Unique7 pattern7 Unique8 pattern8 Unique9 pattern9 ' +
           'Unique10 pattern10 Unique11 pattern11 Unique12 pattern12 Unique13 pattern13 Unique14 pattern14 ' +
           'Unique15 pattern15 Unique16 pattern16 Unique17 pattern17 Unique18 pattern18 Unique19 pattern19 ' +
-          'Unique20 pattern20 Unique21 pattern21 Unique22 pattern22 Unique23 pattern23 Unique24 pattern24'
+          'Unique20 pattern20 Unique21 pattern21 Unique22 pattern22 Unique23 pattern23 Unique24 pattern24',
       );
 
       const result = await getSuggestions(target.id);
@@ -201,7 +210,7 @@ describe('PatternSuggesterService', () => {
 
       // Find the multi-word "anytime fitness" pattern
       const pattern = result.patterns.find(
-        (p) => p.pattern.includes('anytime') && p.pattern.includes('fitness')
+        (p) => p.pattern.includes('anytime') && p.pattern.includes('fitness'),
       );
       expect(pattern).toBeDefined();
       // Should have word boundaries
@@ -210,5 +219,4 @@ describe('PatternSuggesterService', () => {
       expect(pattern!.pattern).toContain('\\s+');
     });
   });
-
 });

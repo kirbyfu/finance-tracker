@@ -80,7 +80,9 @@ export function Sources() {
     setMapping({ date: '', description: '', amount: '' });
   }
 
-  function handleEdit(source: typeof sources extends (infer T)[] | undefined ? T : never) {
+  function handleEdit(
+    source: typeof sources extends (infer T)[] | undefined ? T : never,
+  ) {
     if (!source) return;
     setEditingId(source.id);
     setName(source.name);
@@ -93,19 +95,47 @@ export function Sources() {
   }
 
   function handleSubmit() {
-    const columnMapping = amountType === 'single'
-      ? { date: mapping.date, description: mapping.description, amount: mapping.amount, balance: mapping.balance }
-      : { date: mapping.date, description: mapping.description, debit: mapping.debit, credit: mapping.credit, balance: mapping.balance };
+    const columnMapping =
+      amountType === 'single'
+        ? {
+            date: mapping.date,
+            description: mapping.description,
+            amount: mapping.amount,
+            balance: mapping.balance,
+          }
+        : {
+            date: mapping.date,
+            description: mapping.description,
+            debit: mapping.debit,
+            credit: mapping.credit,
+            balance: mapping.balance,
+          };
 
     // Convert string numbers to actual numbers for headerless mode
-    const processedMapping = hasHeaderRow ? columnMapping : Object.fromEntries(
-      Object.entries(columnMapping).map(([k, v]) => [k, v ? parseInt(v as string, 10) || v : v])
-    );
+    const processedMapping = hasHeaderRow
+      ? columnMapping
+      : Object.fromEntries(
+          Object.entries(columnMapping).map(([k, v]) => [
+            k,
+            v ? parseInt(v as string, 10) || v : v,
+          ]),
+        );
 
     if (editingId) {
-      updateMutation.mutate({ id: editingId, name, type, hasHeaderRow, columnMapping: processedMapping as ColumnMapping });
+      updateMutation.mutate({
+        id: editingId,
+        name,
+        type,
+        hasHeaderRow,
+        columnMapping: processedMapping as ColumnMapping,
+      });
     } else {
-      createMutation.mutate({ name, type, hasHeaderRow, columnMapping: processedMapping as ColumnMapping });
+      createMutation.mutate({
+        name,
+        type,
+        hasHeaderRow,
+        columnMapping: processedMapping as ColumnMapping,
+      });
     }
   }
 
@@ -124,16 +154,25 @@ export function Sources() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Source' : 'Add Source'}</DialogTitle>
+              <DialogTitle>
+                {editingId ? 'Edit Source' : 'Add Source'}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Chase Bank" />
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Chase Bank"
+                />
               </div>
               <div>
                 <Label>Type</Label>
-                <Select value={type} onValueChange={(v) => setType(v as 'bank' | 'credit_card')}>
+                <Select
+                  value={type}
+                  onValueChange={(v) => setType(v as 'bank' | 'credit_card')}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -145,7 +184,10 @@ export function Sources() {
               </div>
               <div>
                 <Label>Amount Format</Label>
-                <Select value={amountType} onValueChange={(v) => setAmountType(v as 'single' | 'split')}>
+                <Select
+                  value={amountType}
+                  onValueChange={(v) => setAmountType(v as 'single' | 'split')}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -171,67 +213,101 @@ export function Sources() {
                 </p>
               )}
               <div>
-                <Label>{hasHeaderRow ? 'Date Column' : 'Date Column (position)'}</Label>
+                <Label>
+                  {hasHeaderRow ? 'Date Column' : 'Date Column (position)'}
+                </Label>
                 <Input
                   type={hasHeaderRow ? 'text' : 'number'}
                   min={hasHeaderRow ? undefined : 1}
                   value={mapping.date}
-                  onChange={(e) => setMapping({ ...mapping, date: e.target.value })}
+                  onChange={(e) =>
+                    setMapping({ ...mapping, date: e.target.value })
+                  }
                   placeholder={hasHeaderRow ? 'e.g., Post Date' : 'e.g., 1'}
                 />
               </div>
               <div>
-                <Label>{hasHeaderRow ? 'Description Column' : 'Description Column (position)'}</Label>
+                <Label>
+                  {hasHeaderRow
+                    ? 'Description Column'
+                    : 'Description Column (position)'}
+                </Label>
                 <Input
                   type={hasHeaderRow ? 'text' : 'number'}
                   min={hasHeaderRow ? undefined : 1}
                   value={mapping.description}
-                  onChange={(e) => setMapping({ ...mapping, description: e.target.value })}
+                  onChange={(e) =>
+                    setMapping({ ...mapping, description: e.target.value })
+                  }
                   placeholder={hasHeaderRow ? 'e.g., Description' : 'e.g., 2'}
                 />
               </div>
               {amountType === 'single' ? (
                 <div>
-                  <Label>{hasHeaderRow ? 'Amount Column' : 'Amount Column (position)'}</Label>
+                  <Label>
+                    {hasHeaderRow
+                      ? 'Amount Column'
+                      : 'Amount Column (position)'}
+                  </Label>
                   <Input
                     type={hasHeaderRow ? 'text' : 'number'}
                     min={hasHeaderRow ? undefined : 1}
                     value={mapping.amount || ''}
-                    onChange={(e) => setMapping({ ...mapping, amount: e.target.value })}
+                    onChange={(e) =>
+                      setMapping({ ...mapping, amount: e.target.value })
+                    }
                     placeholder={hasHeaderRow ? 'e.g., Amount' : 'e.g., 3'}
                   />
                 </div>
               ) : (
                 <>
                   <div>
-                    <Label>{hasHeaderRow ? 'Debit Column' : 'Debit Column (position)'}</Label>
+                    <Label>
+                      {hasHeaderRow
+                        ? 'Debit Column'
+                        : 'Debit Column (position)'}
+                    </Label>
                     <Input
                       type={hasHeaderRow ? 'text' : 'number'}
                       min={hasHeaderRow ? undefined : 1}
                       value={mapping.debit || ''}
-                      onChange={(e) => setMapping({ ...mapping, debit: e.target.value })}
+                      onChange={(e) =>
+                        setMapping({ ...mapping, debit: e.target.value })
+                      }
                       placeholder={hasHeaderRow ? 'e.g., Debit' : 'e.g., 3'}
                     />
                   </div>
                   <div>
-                    <Label>{hasHeaderRow ? 'Credit Column' : 'Credit Column (position)'}</Label>
+                    <Label>
+                      {hasHeaderRow
+                        ? 'Credit Column'
+                        : 'Credit Column (position)'}
+                    </Label>
                     <Input
                       type={hasHeaderRow ? 'text' : 'number'}
                       min={hasHeaderRow ? undefined : 1}
                       value={mapping.credit || ''}
-                      onChange={(e) => setMapping({ ...mapping, credit: e.target.value })}
+                      onChange={(e) =>
+                        setMapping({ ...mapping, credit: e.target.value })
+                      }
                       placeholder={hasHeaderRow ? 'e.g., Credit' : 'e.g., 4'}
                     />
                   </div>
                 </>
               )}
               <div>
-                <Label>{hasHeaderRow ? 'Balance Column (optional)' : 'Balance Column (position, optional)'}</Label>
+                <Label>
+                  {hasHeaderRow
+                    ? 'Balance Column (optional)'
+                    : 'Balance Column (position, optional)'}
+                </Label>
                 <Input
                   type={hasHeaderRow ? 'text' : 'number'}
                   min={hasHeaderRow ? undefined : 1}
                   value={mapping.balance || ''}
-                  onChange={(e) => setMapping({ ...mapping, balance: e.target.value })}
+                  onChange={(e) =>
+                    setMapping({ ...mapping, balance: e.target.value })
+                  }
                   placeholder={hasHeaderRow ? 'e.g., Balance' : 'e.g., 5'}
                 />
               </div>
@@ -261,7 +337,9 @@ export function Sources() {
               {sources?.map((source) => (
                 <TableRow key={source.id}>
                   <TableCell className="font-medium">{source.name}</TableCell>
-                  <TableCell>{source.type === 'bank' ? 'Bank Account' : 'Credit Card'}</TableCell>
+                  <TableCell>
+                    {source.type === 'bank' ? 'Bank Account' : 'Credit Card'}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {Object.entries(JSON.parse(source.columnMapping))
                       .filter(([, v]) => v)
@@ -270,10 +348,18 @@ export function Sources() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(source)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(source)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(source.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(source.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -282,7 +368,10 @@ export function Sources() {
               ))}
               {sources?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="text-center text-muted-foreground"
+                  >
                     No sources configured. Add one to get started.
                   </TableCell>
                 </TableRow>

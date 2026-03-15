@@ -13,7 +13,10 @@ describe('noise-phrases', () => {
   describe('cleanDescription', () => {
     it('should remove single noise phrase', () => {
       const phrases = [makePhrase('payment by authority to')];
-      const result = cleanDescription('PAYMENT BY AUTHORITY TO Anytime Fitness', phrases);
+      const result = cleanDescription(
+        'PAYMENT BY AUTHORITY TO Anytime Fitness',
+        phrases,
+      );
       expect(result).toBe('Anytime Fitness');
     });
 
@@ -22,7 +25,10 @@ describe('noise-phrases', () => {
         makePhrase('payment by authority to'),
         makePhrase('direct debit'),
       ];
-      const result = cleanDescription('DIRECT DEBIT PAYMENT BY AUTHORITY TO Store', phrases);
+      const result = cleanDescription(
+        'DIRECT DEBIT PAYMENT BY AUTHORITY TO Store',
+        phrases,
+      );
       expect(result).toBe('Store');
     });
 

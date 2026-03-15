@@ -20,7 +20,7 @@ export function parseCSV(
   columnMapping: ColumnMapping,
   hasHeaderRow: boolean = true,
 ): ParsedTransaction[] {
-  const lines = csvContent.trim().split("\n");
+  const lines = csvContent.trim().split('\n');
   if (lines.length < 1) return [];
 
   let headerIndex: Record<string, number> = {};
@@ -36,7 +36,7 @@ export function parseCSV(
   }
 
   const getColumnIndex = (mapping: string | number): number => {
-    if (typeof mapping === "number") {
+    if (typeof mapping === 'number') {
       return mapping - 1; // Convert 1-based to 0-based
     }
     return headerIndex[mapping] ?? -1;
@@ -96,16 +96,16 @@ export function parseCSV(
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let current = "";
+  let current = '';
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
+    } else if (char === ',' && !inQuotes) {
       result.push(current);
-      current = "";
+      current = '';
     } else {
       current += char;
     }
@@ -116,7 +116,7 @@ function parseCSVLine(line: string): string[] {
 
 function parseAmount(value: string | undefined): number {
   if (!value) return 0;
-  const cleaned = value.replace(/[$,\s]/g, "").trim();
+  const cleaned = value.replace(/[$,\s]/g, '').trim();
   if (!cleaned) return 0;
   return parseFloat(cleaned) || 0;
 }
@@ -134,7 +134,7 @@ function normalizeDate(dateStr: string): string {
     if (dayNum > 12 || (dayNum <= 12 && monthNum <= 12)) {
       // Treat as day/month/year — build string directly to avoid timezone shifts
       if (monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31) {
-        return `${year}-${String(monthNum).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+        return `${year}-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
       }
     }
   }
@@ -146,5 +146,5 @@ function normalizeDate(dateStr: string): string {
   // Last resort: parse with Date but extract local components to avoid timezone shift
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }

@@ -14,10 +14,24 @@ import {
 import { Plus } from 'lucide-react';
 
 const COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#6b7280',
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#eab308',
+  '#84cc16',
+  '#22c55e',
+  '#10b981',
+  '#14b8a6',
+  '#06b6d4',
+  '#0ea5e9',
+  '#3b82f6',
+  '#6366f1',
+  '#8b5cf6',
+  '#a855f7',
+  '#d946ef',
+  '#ec4899',
+  '#f43f5e',
+  '#6b7280',
 ];
 
 interface CategorySelectWithCreateProps {
@@ -72,7 +86,7 @@ export function CategorySelectWithCreate({
   return (
     <div className="space-y-3">
       <Select
-        value={isCreating ? 'new' : (value?.toString() || '')}
+        value={isCreating ? 'new' : value?.toString() || ''}
         onValueChange={handleSelectChange}
       >
         <SelectTrigger>
@@ -100,22 +114,29 @@ export function CategorySelectWithCreate({
       </Select>
 
       {isCreating && (
-        <div className={compact
-          ? "p-3 border rounded-md space-y-3"
-          : "p-3 bg-muted/50 rounded-lg space-y-3"
-        }>
+        <div
+          className={
+            compact
+              ? 'p-3 border rounded-md space-y-3'
+              : 'p-3 bg-muted/50 rounded-lg space-y-3'
+          }
+        >
           <div>
-            <Label className={compact ? "text-xs" : undefined}>Category Name</Label>
+            <Label className={compact ? 'text-xs' : undefined}>
+              Category Name
+            </Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Groceries"
-              className={compact ? "mt-1 h-8" : undefined}
+              className={compact ? 'mt-1 h-8' : undefined}
             />
           </div>
           <div>
-            <Label className={compact ? "text-xs" : undefined}>Color</Label>
-            <div className={`flex flex-wrap ${compact ? 'gap-1.5 mt-1' : 'gap-2 mt-2'}`}>
+            <Label className={compact ? 'text-xs' : undefined}>Color</Label>
+            <div
+              className={`flex flex-wrap ${compact ? 'gap-1.5 mt-1' : 'gap-2 mt-2'}`}
+            >
               {COLORS.map((c) => (
                 <button
                   key={c}
@@ -133,7 +154,7 @@ export function CategorySelectWithCreate({
           </div>
           <div className="flex items-center gap-2">
             <Switch checked={isTransfer} onCheckedChange={setIsTransfer} />
-            <Label className={compact ? "text-xs" : undefined}>
+            <Label className={compact ? 'text-xs' : undefined}>
               Transfer (excluded from expense totals)
             </Label>
           </div>

@@ -9,7 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,13 +35,27 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 function computeRowStats(values: number[]): { mean: number; stdDev: number } {
-  const nonZero = values.filter(v => v !== 0);
+  const nonZero = values.filter((v) => v !== 0);
   if (nonZero.length < 2) return { mean: 0, stdDev: 0 };
   const mean = nonZero.reduce((a, b) => a + b, 0) / nonZero.length;
-  const variance = nonZero.reduce((sum, v) => sum + (v - mean) ** 2, 0) / nonZero.length;
+  const variance =
+    nonZero.reduce((sum, v) => sum + (v - mean) ** 2, 0) / nonZero.length;
   return { mean, stdDev: Math.sqrt(variance) };
 }
 
@@ -48,7 +66,7 @@ function isOutlier(value: number, mean: number, stdDev: number): boolean {
 
 function buildTransactionUrl(
   categoryId: number | null,
-  period: { year: number; month?: number }
+  period: { year: number; month?: number },
 ): string {
   const params = new URLSearchParams();
 
@@ -94,7 +112,14 @@ function MonthsView() {
   const monthCount = parseInt(searchParams.get('months') || '12');
   const selectedTransfers = useMemo(() => {
     const param = searchParams.get('transfers');
-    return param ? new Set(param.split(',').map(Number).filter(n => !isNaN(n))) : new Set<number>();
+    return param
+      ? new Set(
+          param
+            .split(',')
+            .map(Number)
+            .filter((n) => !isNaN(n)),
+        )
+      : new Set<number>();
   }, [searchParams]);
 
   const setMonthCount = (count: number) => {
@@ -103,12 +128,29 @@ function MonthsView() {
     setSearchParams(params);
   };
 
-  const { data, isLoading } = trpc.reports.multiMonth.useQuery({ months: monthCount });
+  const { data, isLoading } = trpc.reports.multiMonth.useQuery({
+    months: monthCount,
+  });
 
-  const { monthKeys, categoryRows, transferRows, transferCategories, netByMonth, rowStats } = useMemo(() => {
-    if (!data) return { monthKeys: [], categoryRows: [], transferRows: [], transferCategories: [], netByMonth: new Map<string, number>(), rowStats: new Map<number | null, { mean: number; stdDev: number }>() };
+  const {
+    monthKeys,
+    categoryRows,
+    transferRows,
+    transferCategories,
+    netByMonth,
+    rowStats,
+  } = useMemo(() => {
+    if (!data)
+      return {
+        monthKeys: [],
+        categoryRows: [],
+        transferRows: [],
+        transferCategories: [],
+        netByMonth: new Map<string, number>(),
+        rowStats: new Map<number | null, { mean: number; stdDev: number }>(),
+      };
 
-    const keys = data.map(d => `${d.year}-${d.month}`);
+    const keys = data.map((d) => `${d.year}-${d.month}`);
     const rowMap = new Map<number | null, MonthCategoryRow>();
     const transferMap = new Map<number, MonthCategoryRow>();
     const netMap = new Map<string, number>();
@@ -124,7 +166,10 @@ function MonthsView() {
           if (item.categoryId !== null) {
             if (!seenTransferIds.has(item.categoryId)) {
               seenTransferIds.add(item.categoryId);
-              transferCats.push({ id: item.categoryId, name: item.categoryName });
+              transferCats.push({
+                id: item.categoryId,
+                name: item.categoryName,
+              });
             }
             if (!transferMap.has(item.categoryId)) {
               transferMap.set(item.categoryId, {
@@ -170,10 +215,19 @@ function MonthsView() {
 
     transferCats.sort((a, b) => a.name.localeCompare(b.name));
 
-    return { monthKeys: keys, categoryRows: rows, transferRows: Array.from(transferMap.values()), transferCategories: transferCats, netByMonth: netMap, rowStats: statsMap };
+    return {
+      monthKeys: keys,
+      categoryRows: rows,
+      transferRows: Array.from(transferMap.values()),
+      transferCategories: transferCats,
+      netByMonth: netMap,
+      rowStats: statsMap,
+    };
   }, [data]);
 
-  const visibleTransferRows = transferRows.filter(r => r.categoryId !== null && selectedTransfers.has(r.categoryId));
+  const visibleTransferRows = transferRows.filter(
+    (r) => r.categoryId !== null && selectedTransfers.has(r.categoryId),
+  );
 
   const toggleTransfer = (id: number) => {
     const next = new Set(selectedTransfers);
@@ -203,7 +257,10 @@ function MonthsView() {
       <div className="flex items-center gap-4 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Show last</span>
-          <Select value={monthCount.toString()} onValueChange={(v) => setMonthCount(parseInt(v))}>
+          <Select
+            value={monthCount.toString()}
+            onValueChange={(v) => setMonthCount(parseInt(v))}
+          >
             <SelectTrigger className="w-20">
               <SelectValue />
             </SelectTrigger>
@@ -220,12 +277,16 @@ function MonthsView() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
-                Transfers {selectedTransfers.size > 0 && `(${selectedTransfers.size})`}
+                Transfers{' '}
+                {selectedTransfers.size > 0 && `(${selectedTransfers.size})`}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2">
-              {transferCategories.map(cat => (
-                <label key={cat.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
+              {transferCategories.map((cat) => (
+                <label
+                  key={cat.id}
+                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer"
+                >
                   <Checkbox
                     checked={selectedTransfers.has(cat.id)}
                     onCheckedChange={() => toggleTransfer(cat.id)}
@@ -246,17 +307,24 @@ function MonthsView() {
           {isLoading ? (
             <p>Loading...</p>
           ) : categoryRows.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No data available</p>
+            <p className="text-muted-foreground text-center py-8">
+              No data available
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-background">Category</TableHead>
-                    {monthKeys.map(key => {
+                    <TableHead className="sticky left-0 bg-background">
+                      Category
+                    </TableHead>
+                    {monthKeys.map((key) => {
                       const period = parseMonthKey(key);
                       return (
-                        <TableHead key={key} className="text-right min-w-[100px] p-0">
+                        <TableHead
+                          key={key}
+                          className="text-right min-w-[100px] p-0"
+                        >
                           <Link
                             to={buildDetailUrl(period)}
                             className="block w-full h-full px-4 py-2 hover:underline hover:bg-muted/50"
@@ -270,21 +338,32 @@ function MonthsView() {
                 </TableHeader>
                 <TableBody>
                   {categoryRows.map((row) => (
-                    <TableRow key={row.categoryId ?? 'uncategorized'} className="hover:bg-muted/50">
+                    <TableRow
+                      key={row.categoryId ?? 'uncategorized'}
+                      className="hover:bg-muted/50"
+                    >
                       <TableCell className="sticky left-0 bg-background font-medium">
                         {row.categoryName}
                       </TableCell>
-                      {monthKeys.map(key => {
+                      {monthKeys.map((key) => {
                         const amount = row.monthTotals.get(key) || 0;
                         const period = parseMonthKey(key);
                         const stats = rowStats.get(row.categoryId);
-                        const outlier = stats && isOutlier(amount, stats.mean, stats.stdDev);
+                        const outlier =
+                          stats && isOutlier(amount, stats.mean, stats.stdDev);
                         return (
-                          <TableCell key={key} className={`p-0 ${outlier ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}>
+                          <TableCell
+                            key={key}
+                            className={`p-0 ${outlier ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}
+                          >
                             <Link
                               to={buildTransactionUrl(row.categoryId, period)}
                               className={`block w-full h-full px-4 py-2 text-right hover:underline ${amount < 0 ? 'text-red-600' : amount > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
-                              title={outlier ? `${Math.abs(((amount - stats!.mean) / stats!.stdDev)).toFixed(1)}σ from avg (${formatCurrency(stats!.mean)})` : undefined}
+                              title={
+                                outlier
+                                  ? `${Math.abs((amount - stats!.mean) / stats!.stdDev).toFixed(1)}σ from avg (${formatCurrency(stats!.mean)})`
+                                  : undefined
+                              }
                             >
                               {amount !== 0 ? formatCurrency(amount) : '-'}
                             </Link>
@@ -294,8 +373,10 @@ function MonthsView() {
                     </TableRow>
                   ))}
                   <TableRow className="border-t-2 font-bold">
-                    <TableCell className="sticky left-0 bg-background">Net</TableCell>
-                    {monthKeys.map(key => {
+                    <TableCell className="sticky left-0 bg-background">
+                      Net
+                    </TableCell>
+                    {monthKeys.map((key) => {
                       const net = netByMonth.get(key) || 0;
                       return (
                         <TableCell
@@ -308,11 +389,14 @@ function MonthsView() {
                     })}
                   </TableRow>
                   {visibleTransferRows.map((row) => (
-                    <TableRow key={`transfer-${row.categoryId}`} className="hover:bg-muted/50 text-muted-foreground">
+                    <TableRow
+                      key={`transfer-${row.categoryId}`}
+                      className="hover:bg-muted/50 text-muted-foreground"
+                    >
                       <TableCell className="sticky left-0 bg-background font-medium italic">
                         {row.categoryName}
                       </TableCell>
-                      {monthKeys.map(key => {
+                      {monthKeys.map((key) => {
                         const amount = row.monthTotals.get(key) || 0;
                         const period = parseMonthKey(key);
                         return (
@@ -343,7 +427,14 @@ function YearsView() {
   const yearCount = parseInt(searchParams.get('years') || '5');
   const selectedTransfers = useMemo(() => {
     const param = searchParams.get('transfers');
-    return param ? new Set(param.split(',').map(Number).filter(n => !isNaN(n))) : new Set<number>();
+    return param
+      ? new Set(
+          param
+            .split(',')
+            .map(Number)
+            .filter((n) => !isNaN(n)),
+        )
+      : new Set<number>();
   }, [searchParams]);
 
   const setYearCount = (count: number) => {
@@ -352,12 +443,29 @@ function YearsView() {
     setSearchParams(params);
   };
 
-  const { data, isLoading } = trpc.reports.multiYear.useQuery({ years: yearCount });
+  const { data, isLoading } = trpc.reports.multiYear.useQuery({
+    years: yearCount,
+  });
 
-  const { years, categoryRows, transferRows, transferCategories, netByYear, rowStats } = useMemo(() => {
-    if (!data) return { years: [], categoryRows: [], transferRows: [], transferCategories: [], netByYear: new Map<number, number>(), rowStats: new Map<number | null, { mean: number; stdDev: number }>() };
+  const {
+    years,
+    categoryRows,
+    transferRows,
+    transferCategories,
+    netByYear,
+    rowStats,
+  } = useMemo(() => {
+    if (!data)
+      return {
+        years: [],
+        categoryRows: [],
+        transferRows: [],
+        transferCategories: [],
+        netByYear: new Map<number, number>(),
+        rowStats: new Map<number | null, { mean: number; stdDev: number }>(),
+      };
 
-    const yearsArr = data.map(d => d.year);
+    const yearsArr = data.map((d) => d.year);
     const rowMap = new Map<number | null, YearCategoryRow>();
     const transferMap = new Map<number, YearCategoryRow>();
     const netMap = new Map<number, number>();
@@ -371,7 +479,10 @@ function YearsView() {
           if (item.categoryId !== null) {
             if (!seenTransferIds.has(item.categoryId)) {
               seenTransferIds.add(item.categoryId);
-              transferCats.push({ id: item.categoryId, name: item.categoryName });
+              transferCats.push({
+                id: item.categoryId,
+                name: item.categoryName,
+              });
             }
             if (!transferMap.has(item.categoryId)) {
               transferMap.set(item.categoryId, {
@@ -381,7 +492,9 @@ function YearsView() {
                 sortValue: 0,
               });
             }
-            transferMap.get(item.categoryId)!.yearTotals.set(yearData.year, item.total);
+            transferMap
+              .get(item.categoryId)!
+              .yearTotals.set(yearData.year, item.total);
           }
           continue;
         }
@@ -417,10 +530,19 @@ function YearsView() {
 
     transferCats.sort((a, b) => a.name.localeCompare(b.name));
 
-    return { years: yearsArr, categoryRows: rows, transferRows: Array.from(transferMap.values()), transferCategories: transferCats, netByYear: netMap, rowStats: statsMap };
+    return {
+      years: yearsArr,
+      categoryRows: rows,
+      transferRows: Array.from(transferMap.values()),
+      transferCategories: transferCats,
+      netByYear: netMap,
+      rowStats: statsMap,
+    };
   }, [data]);
 
-  const visibleTransferRows = transferRows.filter(r => r.categoryId !== null && selectedTransfers.has(r.categoryId));
+  const visibleTransferRows = transferRows.filter(
+    (r) => r.categoryId !== null && selectedTransfers.has(r.categoryId),
+  );
 
   const toggleTransfer = (id: number) => {
     const next = new Set(selectedTransfers);
@@ -440,7 +562,10 @@ function YearsView() {
       <div className="flex items-center gap-4 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Show last</span>
-          <Select value={yearCount.toString()} onValueChange={(v) => setYearCount(parseInt(v))}>
+          <Select
+            value={yearCount.toString()}
+            onValueChange={(v) => setYearCount(parseInt(v))}
+          >
             <SelectTrigger className="w-20">
               <SelectValue />
             </SelectTrigger>
@@ -457,12 +582,16 @@ function YearsView() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
-                Transfers {selectedTransfers.size > 0 && `(${selectedTransfers.size})`}
+                Transfers{' '}
+                {selectedTransfers.size > 0 && `(${selectedTransfers.size})`}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2">
-              {transferCategories.map(cat => (
-                <label key={cat.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
+              {transferCategories.map((cat) => (
+                <label
+                  key={cat.id}
+                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer"
+                >
                   <Checkbox
                     checked={selectedTransfers.has(cat.id)}
                     onCheckedChange={() => toggleTransfer(cat.id)}
@@ -483,15 +612,22 @@ function YearsView() {
           {isLoading ? (
             <p>Loading...</p>
           ) : categoryRows.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No data available</p>
+            <p className="text-muted-foreground text-center py-8">
+              No data available
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-background">Category</TableHead>
-                    {years.map(year => (
-                      <TableHead key={year} className="text-right min-w-[100px] p-0">
+                    <TableHead className="sticky left-0 bg-background">
+                      Category
+                    </TableHead>
+                    {years.map((year) => (
+                      <TableHead
+                        key={year}
+                        className="text-right min-w-[100px] p-0"
+                      >
                         <Link
                           to={buildDetailUrl({ year })}
                           className="block w-full h-full px-4 py-2 hover:underline hover:bg-muted/50"
@@ -504,20 +640,31 @@ function YearsView() {
                 </TableHeader>
                 <TableBody>
                   {categoryRows.map((row) => (
-                    <TableRow key={row.categoryId ?? 'uncategorized'} className="hover:bg-muted/50">
+                    <TableRow
+                      key={row.categoryId ?? 'uncategorized'}
+                      className="hover:bg-muted/50"
+                    >
                       <TableCell className="sticky left-0 bg-background font-medium">
                         {row.categoryName}
                       </TableCell>
-                      {years.map(year => {
+                      {years.map((year) => {
                         const amount = row.yearTotals.get(year) || 0;
                         const stats = rowStats.get(row.categoryId);
-                        const outlier = stats && isOutlier(amount, stats.mean, stats.stdDev);
+                        const outlier =
+                          stats && isOutlier(amount, stats.mean, stats.stdDev);
                         return (
-                          <TableCell key={year} className={`p-0 ${outlier ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}>
+                          <TableCell
+                            key={year}
+                            className={`p-0 ${outlier ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}
+                          >
                             <Link
                               to={buildTransactionUrl(row.categoryId, { year })}
                               className={`block w-full h-full px-4 py-2 text-right hover:underline ${amount < 0 ? 'text-red-600' : amount > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
-                              title={outlier ? `${Math.abs(((amount - stats!.mean) / stats!.stdDev)).toFixed(1)}σ from avg (${formatCurrency(stats!.mean)})` : undefined}
+                              title={
+                                outlier
+                                  ? `${Math.abs((amount - stats!.mean) / stats!.stdDev).toFixed(1)}σ from avg (${formatCurrency(stats!.mean)})`
+                                  : undefined
+                              }
                             >
                               {amount !== 0 ? formatCurrency(amount) : '-'}
                             </Link>
@@ -527,8 +674,10 @@ function YearsView() {
                     </TableRow>
                   ))}
                   <TableRow className="border-t-2 font-bold">
-                    <TableCell className="sticky left-0 bg-background">Net</TableCell>
-                    {years.map(year => {
+                    <TableCell className="sticky left-0 bg-background">
+                      Net
+                    </TableCell>
+                    {years.map((year) => {
                       const net = netByYear.get(year) || 0;
                       return (
                         <TableCell
@@ -541,11 +690,14 @@ function YearsView() {
                     })}
                   </TableRow>
                   {visibleTransferRows.map((row) => (
-                    <TableRow key={`transfer-${row.categoryId}`} className="hover:bg-muted/50 text-muted-foreground">
+                    <TableRow
+                      key={`transfer-${row.categoryId}`}
+                      className="hover:bg-muted/50 text-muted-foreground"
+                    >
                       <TableCell className="sticky left-0 bg-background font-medium italic">
                         {row.categoryName}
                       </TableCell>
-                      {years.map(year => {
+                      {years.map((year) => {
                         const amount = row.yearTotals.get(year) || 0;
                         return (
                           <TableCell key={year} className="p-0">

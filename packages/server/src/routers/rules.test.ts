@@ -11,7 +11,10 @@ describe('rules router', () => {
     await db.run(sql`DELETE FROM transactions`);
     await db.run(sql`DELETE FROM rules`);
     await db.run(sql`DELETE FROM categories`);
-    const [cat] = await db.insert(categories).values({ name: 'Test Category' }).returning();
+    const [cat] = await db
+      .insert(categories)
+      .values({ name: 'Test Category' })
+      .returning();
     categoryId = cat.id;
   });
 
@@ -60,8 +63,16 @@ describe('rules router', () => {
 
   it('should reorder rules', async () => {
     const caller = appRouter.createCaller({});
-    const r1 = await caller.rules.create({ pattern: 'A', categoryId, priority: 1 });
-    const r2 = await caller.rules.create({ pattern: 'B', categoryId, priority: 2 });
+    const r1 = await caller.rules.create({
+      pattern: 'A',
+      categoryId,
+      priority: 1,
+    });
+    const r2 = await caller.rules.create({
+      pattern: 'B',
+      categoryId,
+      priority: 2,
+    });
 
     await caller.rules.reorder({ ids: [r2.id, r1.id] });
 

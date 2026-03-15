@@ -12,10 +12,12 @@ export interface CategorySummary {
 
 export const reportsRouter = router({
   monthly: publicProcedure
-    .input(z.object({
-      year: z.number(),
-      month: z.number().min(1).max(12),
-    }))
+    .input(
+      z.object({
+        year: z.number(),
+        month: z.number().min(1).max(12),
+      }),
+    )
     .query(async ({ input }) => {
       const startDate = `${input.year}-${String(input.month).padStart(2, '0')}-01`;
       const endDate = getLastDayOfMonth(input.year, input.month);
@@ -23,19 +25,28 @@ export const reportsRouter = router({
     }),
 
   monthlyComparison: publicProcedure
-    .input(z.object({
-      startYear: z.number(),
-      startMonth: z.number().min(1).max(12),
-      endYear: z.number(),
-      endMonth: z.number().min(1).max(12),
-    }))
+    .input(
+      z.object({
+        startYear: z.number(),
+        startMonth: z.number().min(1).max(12),
+        endYear: z.number(),
+        endMonth: z.number().min(1).max(12),
+      }),
+    )
     .query(async ({ input }) => {
-      const months: { year: number; month: number; breakdown: CategorySummary[] }[] = [];
+      const months: {
+        year: number;
+        month: number;
+        breakdown: CategorySummary[];
+      }[] = [];
 
       let year = input.startYear;
       let month = input.startMonth;
 
-      while (year < input.endYear || (year === input.endYear && month <= input.endMonth)) {
+      while (
+        year < input.endYear ||
+        (year === input.endYear && month <= input.endMonth)
+      ) {
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
         const endDate = getLastDayOfMonth(year, month);
         const breakdown = await getBreakdown(startDate, endDate);
@@ -60,10 +71,12 @@ export const reportsRouter = router({
     }),
 
   annualComparison: publicProcedure
-    .input(z.object({
-      startYear: z.number(),
-      endYear: z.number(),
-    }))
+    .input(
+      z.object({
+        startYear: z.number(),
+        endYear: z.number(),
+      }),
+    )
     .query(async ({ input }) => {
       const years: { year: number; breakdown: CategorySummary[] }[] = [];
 
@@ -78,9 +91,11 @@ export const reportsRouter = router({
     }),
 
   multiYear: publicProcedure
-    .input(z.object({
-      years: z.number(),
-    }))
+    .input(
+      z.object({
+        years: z.number(),
+      }),
+    )
     .query(async ({ input }) => {
       const currentYear = new Date().getFullYear();
       const startYear = currentYear - input.years + 1;
@@ -97,12 +112,18 @@ export const reportsRouter = router({
     }),
 
   multiMonth: publicProcedure
-    .input(z.object({
-      months: z.number(),
-    }))
+    .input(
+      z.object({
+        months: z.number(),
+      }),
+    )
     .query(async ({ input }) => {
       const now = new Date();
-      const result: { year: number; month: number; breakdown: CategorySummary[] }[] = [];
+      const result: {
+        year: number;
+        month: number;
+        breakdown: CategorySummary[];
+      }[] = [];
 
       for (let i = input.months - 1; i >= 0; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -118,14 +139,19 @@ export const reportsRouter = router({
     }),
 });
 
-async function getBreakdown(startDate: string, endDate: string): Promise<CategorySummary[]> {
+async function getBreakdown(
+  startDate: string,
+  endDate: string,
+): Promise<CategorySummary[]> {
   const allCategories = await db.select().from(categories);
-  const categoryMap = new Map(allCategories.map(c => [c.id, c]));
+  const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
 
   const txs = await db
     .select()
     .from(transactions)
-    .where(and(gte(transactions.date, startDate), lte(transactions.date, endDate)));
+    .where(
+      and(gte(transactions.date, startDate), lte(transactions.date, endDate)),
+    );
 
   const totals = new Map<number | null, number>();
 

@@ -1,36 +1,36 @@
-import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { CreateRulePanel } from "@/components/CreateRulePanel";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { CreateRulePanel } from '@/components/CreateRulePanel';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { trpc } from "@/lib/trpc";
-import { useVirtualizer } from "@tanstack/react-virtual";
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { trpc } from '@/lib/trpc';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   Trash2,
   Wand2,
-} from "lucide-react";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+} from 'lucide-react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const PAGE_SIZE_OPTIONS = [
-  { value: "100", label: "100" },
-  { value: "1000", label: "1000" },
-  { value: "all", label: "All" },
+  { value: '100', label: '100' },
+  { value: '1000', label: '1000' },
+  { value: 'all', label: 'All' },
 ] as const;
 
-type PageSizeValue = (typeof PAGE_SIZE_OPTIONS)[number]["value"];
+type PageSizeValue = (typeof PAGE_SIZE_OPTIONS)[number]['value'];
 
 interface Transaction {
   id: number;
@@ -43,24 +43,24 @@ interface Transaction {
   notes: string | null;
 }
 
-const GRID_COLS = "40px 120px 1fr 100px 155px 120px 180px 80px";
+const GRID_COLS = '40px 120px 1fr 100px 155px 120px 180px 80px';
 
 const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 function formatDateStr(dateStr: string) {
-  const [y, m, d] = dateStr.split("-");
+  const [y, m, d] = dateStr.split('-');
   return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
 }
 
@@ -100,7 +100,7 @@ const Row = memo(function Row({
 
   return (
     <div
-      className={`h-full grid items-center text-sm border-b cursor-pointer hover:bg-muted/50 select-none ${isSelected ? "bg-muted" : ""}`}
+      className={`h-full grid items-center text-sm border-b cursor-pointer hover:bg-muted/50 select-none ${isSelected ? 'bg-muted' : ''}`}
       style={{ gridTemplateColumns: GRID_COLS }}
       onClick={(e) => onSelect(tx.id, index, e)}
     >
@@ -118,7 +118,7 @@ const Row = memo(function Row({
       <div className="px-3">{formatDateStr(tx.date)}</div>
       <div className="px-3 truncate">{tx.description}</div>
       <div
-        className={`px-3 text-right ${tx.amount < 0 ? "text-red-600" : "text-green-600"}`}
+        className={`px-3 text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}
       >
         {formatAmountNum(tx.amount)}
       </div>
@@ -178,40 +178,40 @@ export function Transactions() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [noteValue, setNoteValue] = useState("");
+  const [noteValue, setNoteValue] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [ruleTransaction, setRuleTransaction] = useState<Transaction | null>(
     null,
   );
   const lastClickedIndexRef = useRef<number | null>(null);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSizeValue>("100");
+  const [pageSize, setPageSize] = useState<PageSizeValue>('100');
 
   // Parse URL params
   const filters = {
-    sourceId: searchParams.get("sourceId")
-      ? Number(searchParams.get("sourceId"))
+    sourceId: searchParams.get('sourceId')
+      ? Number(searchParams.get('sourceId'))
       : undefined,
     categoryId:
-      searchParams.get("categoryId") === "uncategorized"
+      searchParams.get('categoryId') === 'uncategorized'
         ? undefined
-        : searchParams.get("categoryId")
-          ? Number(searchParams.get("categoryId"))
+        : searchParams.get('categoryId')
+          ? Number(searchParams.get('categoryId'))
           : undefined,
     uncategorizedOnly:
-      searchParams.get("categoryId") === "uncategorized" ||
-      searchParams.get("uncategorizedOnly") === "true",
-    startDate: searchParams.get("startDate") || undefined,
-    endDate: searchParams.get("endDate") || undefined,
-    search: searchParams.get("search") || undefined,
-    sort: (searchParams.get("sort") as "date" | "amount") || "date",
-    order: (searchParams.get("order") as "asc" | "desc") || "desc",
+      searchParams.get('categoryId') === 'uncategorized' ||
+      searchParams.get('uncategorizedOnly') === 'true',
+    startDate: searchParams.get('startDate') || undefined,
+    endDate: searchParams.get('endDate') || undefined,
+    search: searchParams.get('search') || undefined,
+    sort: (searchParams.get('sort') as 'date' | 'amount') || 'date',
+    order: (searchParams.get('order') as 'asc' | 'desc') || 'desc',
   };
 
   const updateFilters = (updates: Partial<typeof filters>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === undefined || value === "" || value === false) {
+      if (value === undefined || value === '' || value === false) {
         newParams.delete(key);
       } else {
         newParams.set(key, String(value));
@@ -221,18 +221,18 @@ export function Transactions() {
     setPage(0);
   };
 
-  const handleSort = (column: "date" | "amount") => {
+  const handleSort = (column: 'date' | 'amount') => {
     if (filters.sort === column) {
-      updateFilters({ order: filters.order === "asc" ? "desc" : "asc" });
+      updateFilters({ order: filters.order === 'asc' ? 'desc' : 'asc' });
     } else {
-      updateFilters({ sort: column, order: "desc" });
+      updateFilters({ sort: column, order: 'desc' });
     }
   };
 
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
-  const numericPageSize = pageSize === "all" ? undefined : parseInt(pageSize);
+  const numericPageSize = pageSize === 'all' ? undefined : parseInt(pageSize);
   const { data: transactions, isLoading } = trpc.transactions.list.useQuery({
     sourceId: filters.sourceId,
     categoryId: filters.categoryId,
@@ -269,7 +269,7 @@ export function Transactions() {
       parts.push(`"${filters.search}"`);
     }
     if (filters.uncategorizedOnly) {
-      parts.push("Uncategorized");
+      parts.push('Uncategorized');
     } else if (filters.categoryId) {
       parts.push(
         categoryMap.get(filters.categoryId)?.name ||
@@ -285,13 +285,13 @@ export function Transactions() {
     } else if (filters.endDate) {
       parts.push(`Until ${formatDateStr(filters.endDate)}`);
     }
-    return parts.join(" | ");
+    return parts.join(' | ');
   };
 
   const clearUrlFilters = () => {
     const newParams = new URLSearchParams();
-    if (filters.sort !== "date") newParams.set("sort", filters.sort);
-    if (filters.order !== "desc") newParams.set("order", filters.order);
+    if (filters.sort !== 'date') newParams.set('sort', filters.sort);
+    if (filters.order !== 'desc') newParams.set('order', filters.order);
     setPage(0);
     setSearchParams(newParams);
   };
@@ -384,7 +384,7 @@ export function Transactions() {
   const handleCategoryChange = useCallback(
     (transactionId: number, categoryId: string) => {
       const manualCategoryId =
-        categoryId === "none" ? null : parseInt(categoryId);
+        categoryId === 'none' ? null : parseInt(categoryId);
       updateMutation.mutate({ id: transactionId, manualCategoryId });
     },
     [updateMutation],
@@ -401,7 +401,7 @@ export function Transactions() {
   const handleNoteClick = useCallback(
     (id: number, currentNote: string | null) => {
       setEditingNoteId(id);
-      setNoteValue(currentNote || "");
+      setNoteValue(currentNote || '');
     },
     [],
   );
@@ -410,7 +410,7 @@ export function Transactions() {
     (id: number, note: string) => {
       updateMutation.mutate({ id, notes: note || null });
       setEditingNoteId(null);
-      setNoteValue("");
+      setNoteValue('');
     },
     [updateMutation],
   );
@@ -453,8 +453,8 @@ export function Transactions() {
           disabled={recategorizeMutation.isPending}
         >
           {recategorizeMutation.isPending
-            ? "Recategorizing..."
-            : "Recategorize All"}
+            ? 'Recategorizing...'
+            : 'Recategorize All'}
         </Button>
       </div>
 
@@ -484,7 +484,7 @@ export function Transactions() {
               <Input
                 type="text"
                 placeholder="Search..."
-                value={filters.search || ""}
+                value={filters.search || ''}
                 onChange={(e) =>
                   updateFilters({ search: e.target.value || undefined })
                 }
@@ -494,10 +494,10 @@ export function Transactions() {
             <div>
               <Label>Source</Label>
               <Select
-                value={filters.sourceId?.toString() || "all"}
+                value={filters.sourceId?.toString() || 'all'}
                 onValueChange={(v) =>
                   updateFilters({
-                    sourceId: v === "all" ? undefined : parseInt(v),
+                    sourceId: v === 'all' ? undefined : parseInt(v),
                   })
                 }
               >
@@ -517,10 +517,10 @@ export function Transactions() {
             <div>
               <Label>Category</Label>
               <Select
-                value={filters.categoryId?.toString() || "all"}
+                value={filters.categoryId?.toString() || 'all'}
                 onValueChange={(v) =>
                   updateFilters({
-                    categoryId: v === "all" ? undefined : parseInt(v),
+                    categoryId: v === 'all' ? undefined : parseInt(v),
                   })
                 }
               >
@@ -550,7 +550,7 @@ export function Transactions() {
               <Label>Start Date</Label>
               <Input
                 type="date"
-                value={filters.startDate || ""}
+                value={filters.startDate || ''}
                 onChange={(e) =>
                   updateFilters({ startDate: e.target.value || undefined })
                 }
@@ -561,7 +561,7 @@ export function Transactions() {
               <Label>End Date</Label>
               <Input
                 type="date"
-                value={filters.endDate || ""}
+                value={filters.endDate || ''}
                 onChange={(e) =>
                   updateFilters({ endDate: e.target.value || undefined })
                 }
@@ -612,20 +612,20 @@ export function Transactions() {
                 </div>
                 <div
                   className="px-3 h-12 flex items-center cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("date")}
+                  onClick={() => handleSort('date')}
                 >
-                  Date{" "}
-                  {filters.sort === "date" &&
-                    (filters.order === "asc" ? "▲" : "▼")}
+                  Date{' '}
+                  {filters.sort === 'date' &&
+                    (filters.order === 'asc' ? '▲' : '▼')}
                 </div>
                 <div className="px-3 h-12 flex items-center">Description</div>
                 <div
                   className="px-3 h-12 flex items-center justify-end cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("amount")}
+                  onClick={() => handleSort('amount')}
                 >
-                  Amount{" "}
-                  {filters.sort === "amount" &&
-                    (filters.order === "asc" ? "▲" : "▼")}
+                  Amount{' '}
+                  {filters.sort === 'amount' &&
+                    (filters.order === 'asc' ? '▲' : '▼')}
                 </div>
                 <div className="px-3 h-12 flex items-center">Category</div>
                 <div className="px-3 h-12 flex items-center">Source</div>
@@ -638,7 +638,7 @@ export function Transactions() {
                 <div
                   style={{
                     height: virtualizer.getTotalSize(),
-                    position: "relative",
+                    position: 'relative',
                   }}
                 >
                   {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -650,9 +650,9 @@ export function Transactions() {
                       : null;
                     const categoryName =
                       category?.name ||
-                      (effectiveCategoryId ? "Unknown" : "Uncategorized");
+                      (effectiveCategoryId ? 'Unknown' : 'Uncategorized');
                     const categoryColor = category?.color || null;
-                    const sourceName = sourceMap.get(tx.sourceId) || "Unknown";
+                    const sourceName = sourceMap.get(tx.sourceId) || 'Unknown';
                     return (
                       <div
                         key={tx.id}
@@ -685,12 +685,12 @@ export function Transactions() {
               {/* Pagination */}
               <div className="flex items-center justify-between px-4 py-3 border-t flex-shrink-0">
                 <div className="text-sm text-muted-foreground">
-                  {pageSize === "all" ? (
+                  {pageSize === 'all' ? (
                     <>Showing all {transactions?.length || 0} transactions</>
                   ) : (
                     <>
-                      Showing {page * numericPageSize! + 1} -{" "}
-                      {page * numericPageSize! + (transactions?.length || 0)}{" "}
+                      Showing {page * numericPageSize! + 1} -{' '}
+                      {page * numericPageSize! + (transactions?.length || 0)}{' '}
                       transactions
                     </>
                   )}
@@ -716,7 +716,7 @@ export function Transactions() {
                       </SelectContent>
                     </Select>
                   </div>
-                  {pageSize !== "all" && (
+                  {pageSize !== 'all' && (
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -762,7 +762,7 @@ export function Transactions() {
           <Select
             onValueChange={(value) => {
               const manualCategoryId =
-                value === "none" ? null : parseInt(value);
+                value === 'none' ? null : parseInt(value);
               bulkUpdateCategoryMutation.mutate({
                 ids: Array.from(selectedIds),
                 manualCategoryId,
@@ -817,7 +817,7 @@ export function Transactions() {
                 transactions
                   ?.find((t) => t.id === editingCategoryId)
                   ?.categoryId?.toString() ||
-                "none"
+                'none'
               }
               onValueChange={(value) => {
                 handleCategoryChange(editingCategoryId, value);
@@ -871,8 +871,8 @@ export function Transactions() {
               placeholder="Add a note..."
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveNote(editingNoteId, noteValue);
-                if (e.key === "Escape") setEditingNoteId(null);
+                if (e.key === 'Enter') handleSaveNote(editingNoteId, noteValue);
+                if (e.key === 'Escape') setEditingNoteId(null);
               }}
             />
             <div className="flex gap-2">

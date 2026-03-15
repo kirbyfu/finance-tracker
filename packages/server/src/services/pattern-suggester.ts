@@ -22,7 +22,9 @@ export interface SuggestionsResult {
  * Get pattern suggestions for a transaction or all uncategorized transactions.
  * Uses cleaned_description for n-gram extraction, raw description for noise detection.
  */
-export async function getSuggestions(transactionId?: number): Promise<SuggestionsResult> {
+export async function getSuggestions(
+  transactionId?: number,
+): Promise<SuggestionsResult> {
   // Get target cleaned description(s)
   let targetDescriptions: string[];
   let rawDescription: string | null = null;
@@ -46,7 +48,12 @@ export async function getSuggestions(transactionId?: number): Promise<Suggestion
     const uncategorized = await db
       .select({ cleanedDescription: transactions.cleanedDescription })
       .from(transactions)
-      .where(and(isNull(transactions.categoryId), isNull(transactions.manualCategoryId)));
+      .where(
+        and(
+          isNull(transactions.categoryId),
+          isNull(transactions.manualCategoryId),
+        ),
+      );
 
     targetDescriptions = uncategorized
       .map((t) => t.cleanedDescription)
@@ -67,7 +74,8 @@ export async function getSuggestions(transactionId?: number): Promise<Suggestion
     .from(transactions);
 
   const txsWithDescriptions = allTxs.filter(
-    (t): t is typeof t & { cleanedDescription: string } => !!t.cleanedDescription
+    (t): t is typeof t & { cleanedDescription: string } =>
+      !!t.cleanedDescription,
   );
 
   // Extract n-grams from target descriptions
@@ -91,7 +99,8 @@ export async function getSuggestions(transactionId?: number): Promise<Suggestion
 
         for (const tx of txsWithDescriptions) {
           if (tx.cleanedDescription.toLowerCase().includes(ngram)) {
-            const isCategorized = tx.categoryId !== null || tx.manualCategoryId !== null;
+            const isCategorized =
+              tx.categoryId !== null || tx.manualCategoryId !== null;
             if (isCategorized) {
               categorizedMatches.push(tx.cleanedDescription);
             } else {
@@ -100,7 +109,8 @@ export async function getSuggestions(transactionId?: number): Promise<Suggestion
           }
         }
 
-        const totalMatches = uncategorizedMatches.length + categorizedMatches.length;
+        const totalMatches =
+          uncategorizedMatches.length + categorizedMatches.length;
         if (totalMatches >= 2) {
           ngramCounts.set(ngram, {
             uncategorizedCount: uncategorizedMatches.length,
@@ -134,7 +144,11 @@ export async function getSuggestions(transactionId?: number): Promise<Suggestion
     if (b.uncategorizedCount !== a.uncategorizedCount) {
       return b.uncategorizedCount - a.uncategorizedCount;
     }
-    return (b.uncategorizedCount + b.categorizedCount) - (a.uncategorizedCount + a.categorizedCount);
+    return (
+      b.uncategorizedCount +
+      b.categorizedCount -
+      (a.uncategorizedCount + a.categorizedCount)
+    );
   });
   const topPatterns = dedupePatterns(patterns).slice(0, 20);
 
@@ -263,7 +277,7 @@ function dedupeNoise(noise: DetectedNoise[]): DetectedNoise[] {
 
   for (const n of noise) {
     const isDupe = result.some((existing) =>
-      existing.phrase.includes(n.phrase)
+      existing.phrase.includes(n.phrase),
     );
     if (!isDupe) {
       result.push(n);

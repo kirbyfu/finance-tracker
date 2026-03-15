@@ -11,12 +11,14 @@ export const rulesRouter = router({
   }),
 
   create: publicProcedure
-    .input(z.object({
-      pattern: z.string().min(1),
-      categoryId: z.number(),
-      sourceId: z.number().optional(),
-      priority: z.number().default(0),
-    }))
+    .input(
+      z.object({
+        pattern: z.string().min(1),
+        categoryId: z.number(),
+        sourceId: z.number().optional(),
+        priority: z.number().default(0),
+      }),
+    )
     .mutation(async ({ input }) => {
       const result = await db.insert(rules).values(input).returning();
       await recategorizeAll();
@@ -24,16 +26,22 @@ export const rulesRouter = router({
     }),
 
   update: publicProcedure
-    .input(z.object({
-      id: z.number(),
-      pattern: z.string().min(1).optional(),
-      categoryId: z.number().optional(),
-      sourceId: z.number().nullable().optional(),
-      priority: z.number().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number(),
+        pattern: z.string().min(1).optional(),
+        categoryId: z.number().optional(),
+        sourceId: z.number().nullable().optional(),
+        priority: z.number().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const { id, ...updates } = input;
-      const result = await db.update(rules).set(updates).where(eq(rules.id, id)).returning();
+      const result = await db
+        .update(rules)
+        .set(updates)
+        .where(eq(rules.id, id))
+        .returning();
       await recategorizeAll();
       return result[0];
     }),
@@ -49,7 +57,10 @@ export const rulesRouter = router({
     .input(z.object({ ids: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       for (let i = 0; i < input.ids.length; i++) {
-        await db.update(rules).set({ priority: i }).where(eq(rules.id, input.ids[i]));
+        await db
+          .update(rules)
+          .set({ priority: i })
+          .where(eq(rules.id, input.ids[i]));
       }
       return { success: true };
     }),
@@ -59,7 +70,7 @@ export const rulesRouter = router({
     .query(async ({ input }) => {
       const allTransactions = await db.select().from(transactions);
       const regex = new RegExp(input.pattern, 'i');
-      return allTransactions.filter(t => regex.test(t.description));
+      return allTransactions.filter((t) => regex.test(t.description));
     }),
 
   getSuggestions: publicProcedure

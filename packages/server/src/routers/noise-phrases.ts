@@ -8,10 +8,12 @@ export const noisePhrasesRouter = router({
   }),
 
   create: publicProcedure
-    .input(z.object({
-      phrase: z.string().min(1),
-      sourceId: z.number().optional(),
-    }))
+    .input(
+      z.object({
+        phrase: z.string().min(1),
+        sourceId: z.number().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       return NoisePhrasesService.create(input.phrase, input.sourceId);
     }),

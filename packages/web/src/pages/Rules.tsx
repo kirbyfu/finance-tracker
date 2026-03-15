@@ -25,8 +25,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, GripVertical, FlaskConical, RefreshCw, Lightbulb, Check, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  GripVertical,
+  FlaskConical,
+  RefreshCw,
+  Lightbulb,
+  Check,
+  Filter,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { CategorySelectWithCreate } from '@/components/CategorySelectWithCreate';
 
@@ -42,8 +60,14 @@ export function Rules() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [acceptingSuggestion, setAcceptingSuggestion] = useState<{ pattern: string; uncategorizedCount: number; categorizedCount: number } | null>(null);
-  const [suggestionCategoryId, setSuggestionCategoryId] = useState<number | null>(null);
+  const [acceptingSuggestion, setAcceptingSuggestion] = useState<{
+    pattern: string;
+    uncategorizedCount: number;
+    categorizedCount: number;
+  } | null>(null);
+  const [suggestionCategoryId, setSuggestionCategoryId] = useState<
+    number | null
+  >(null);
 
   // Noise filters state
   const [isNoiseFilterOpen, setIsNoiseFilterOpen] = useState(false);
@@ -51,8 +75,12 @@ export function Rules() {
   const [noiseSourceId, setNoiseSourceId] = useState<number | null>(null);
   const [showNoiseSuggestions, setShowNoiseSuggestions] = useState(false);
   const [deleteNoiseId, setDeleteNoiseId] = useState<number | null>(null);
-  const [expandedNoiseSuggestion, setExpandedNoiseSuggestion] = useState<string | null>(null);
-  const [expandedPatternSuggestion, setExpandedPatternSuggestion] = useState<string | null>(null);
+  const [expandedNoiseSuggestion, setExpandedNoiseSuggestion] = useState<
+    string | null
+  >(null);
+  const [expandedPatternSuggestion, setExpandedPatternSuggestion] = useState<
+    string | null
+  >(null);
 
   const utils = trpc.useUtils();
   const { data: rules, isLoading } = trpc.rules.list.useQuery();
@@ -60,11 +88,12 @@ export function Rules() {
   const { data: sources } = trpc.sources.list.useQuery();
   const { data: suggestionsData } = trpc.rules.getSuggestions.useQuery();
   const { data: noisePhrases } = trpc.noisePhrases.list.useQuery();
-  const { data: noiseSuggestions } = trpc.noisePhrases.getSuggestions.useQuery();
+  const { data: noiseSuggestions } =
+    trpc.noisePhrases.getSuggestions.useQuery();
   const suggestions = suggestionsData?.patterns;
   const { data: testResults } = trpc.rules.test.useQuery(
     { pattern: testPattern },
-    { enabled: testPattern.length > 0 && isTestOpen }
+    { enabled: testPattern.length > 0 && isTestOpen },
   );
 
   const recategorizeMutation = trpc.transactions.recategorizeAll.useMutation({
@@ -225,7 +254,10 @@ export function Rules() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => recategorizeMutation.mutate()}>
+          <Button
+            variant="outline"
+            onClick={() => recategorizeMutation.mutate()}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Re-categorize All
           </Button>
@@ -251,7 +283,9 @@ export function Rules() {
                 </div>
                 {testPattern && (
                   <div>
-                    <Label>Matching Transactions ({testResults?.length || 0})</Label>
+                    <Label>
+                      Matching Transactions ({testResults?.length || 0})
+                    </Label>
                     <div className="mt-2 max-h-64 overflow-auto border rounded-md">
                       {testResults && testResults.length > 0 ? (
                         <Table>
@@ -270,7 +304,11 @@ export function Rules() {
                                   {tx.description}
                                 </TableCell>
                                 <TableCell
-                                  className={tx.amount < 0 ? 'text-red-600' : 'text-green-600'}
+                                  className={
+                                    tx.amount < 0
+                                      ? 'text-red-600'
+                                      : 'text-green-600'
+                                  }
                                 >
                                   ${Math.abs(tx.amount).toFixed(2)}
                                 </TableCell>
@@ -303,7 +341,9 @@ export function Rules() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingId ? 'Edit Rule' : 'Add Rule'}</DialogTitle>
+                <DialogTitle>
+                  {editingId ? 'Edit Rule' : 'Add Rule'}
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -319,13 +359,18 @@ export function Rules() {
                 </div>
                 <div>
                   <Label>Category</Label>
-                  <CategorySelectWithCreate value={categoryId} onChange={setCategoryId} />
+                  <CategorySelectWithCreate
+                    value={categoryId}
+                    onChange={setCategoryId}
+                  />
                 </div>
                 <div>
                   <Label>Source Filter (optional)</Label>
                   <Select
                     value={sourceId?.toString() || 'all'}
-                    onValueChange={(v) => setSourceId(v === 'all' ? null : parseInt(v))}
+                    onValueChange={(v) =>
+                      setSourceId(v === 'all' ? null : parseInt(v))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All sources" />
@@ -370,7 +415,8 @@ export function Rules() {
         <CardHeader>
           <CardTitle>Categorization Rules</CardTitle>
           <CardDescription>
-            Rules are applied in order from top to bottom. The first matching rule wins.
+            Rules are applied in order from top to bottom. The first matching
+            rule wins.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -399,15 +445,21 @@ export function Rules() {
                   <TableCell>
                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {index + 1}
+                  </TableCell>
                   <TableCell>
-                    <code className="bg-muted px-2 py-1 rounded text-sm">{rule.pattern}</code>
+                    <code className="bg-muted px-2 py-1 rounded text-sm">
+                      {rule.pattern}
+                    </code>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: getCategoryColor(rule.categoryId) }}
+                        style={{
+                          backgroundColor: getCategoryColor(rule.categoryId),
+                        }}
                       />
                       {getCategoryName(rule.categoryId)}
                     </div>
@@ -425,7 +477,11 @@ export function Rules() {
                       >
                         <FlaskConical className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(rule)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
@@ -441,8 +497,12 @@ export function Rules() {
               ))}
               {rules?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No rules configured. Add one to start auto-categorizing transactions.
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-muted-foreground"
+                  >
+                    No rules configured. Add one to start auto-categorizing
+                    transactions.
                   </TableCell>
                 </TableRow>
               )}
@@ -470,7 +530,8 @@ export function Rules() {
                 Noise Filters
               </CardTitle>
               <CardDescription>
-                Remove common banking phrases from descriptions before pattern matching.
+                Remove common banking phrases from descriptions before pattern
+                matching.
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -482,7 +543,10 @@ export function Rules() {
                 <Lightbulb className="h-4 w-4 mr-2" />
                 {showNoiseSuggestions ? 'Hide' : 'Suggest'} Filters
               </Button>
-              <Dialog open={isNoiseFilterOpen} onOpenChange={setIsNoiseFilterOpen}>
+              <Dialog
+                open={isNoiseFilterOpen}
+                onOpenChange={setIsNoiseFilterOpen}
+              >
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <Plus className="h-4 w-4 mr-2" />
@@ -502,20 +566,25 @@ export function Rules() {
                         placeholder="e.g., PAYMENT BY AUTHORITY TO"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        This phrase will be removed from descriptions (case-insensitive)
+                        This phrase will be removed from descriptions
+                        (case-insensitive)
                       </p>
                     </div>
                     <div>
                       <Label>Source (optional)</Label>
                       <Select
                         value={noiseSourceId?.toString() || 'global'}
-                        onValueChange={(v) => setNoiseSourceId(v === 'global' ? null : parseInt(v))}
+                        onValueChange={(v) =>
+                          setNoiseSourceId(v === 'global' ? null : parseInt(v))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Global (all sources)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="global">Global (all sources)</SelectItem>
+                          <SelectItem value="global">
+                            Global (all sources)
+                          </SelectItem>
                           {sources?.map((src) => (
                             <SelectItem key={src.id} value={src.id.toString()}>
                               {src.name}
@@ -528,7 +597,12 @@ export function Rules() {
                       </p>
                     </div>
                     <Button
-                      onClick={() => createNoiseMutation.mutate({ phrase: noisePhrase, sourceId: noiseSourceId ?? undefined })}
+                      onClick={() =>
+                        createNoiseMutation.mutate({
+                          phrase: noisePhrase,
+                          sourceId: noiseSourceId ?? undefined,
+                        })
+                      }
                       className="w-full"
                       disabled={!noisePhrase.trim()}
                     >
@@ -545,7 +619,8 @@ export function Rules() {
             <div className="mb-4 p-4 bg-muted/50 rounded-lg">
               <h4 className="text-sm font-medium mb-2">Suggested Filters</h4>
               <p className="text-xs text-muted-foreground mb-3">
-                Phrases appearing frequently across transactions (likely generic banking noise)
+                Phrases appearing frequently across transactions (likely generic
+                banking noise)
               </p>
               {noiseSuggestions && noiseSuggestions.length > 0 ? (
                 <div className="space-y-2">
@@ -553,9 +628,13 @@ export function Rules() {
                     <div key={index} className="bg-background rounded border">
                       <div
                         className="flex items-center justify-between p-2 cursor-pointer hover:bg-muted/50"
-                        onClick={() => setExpandedNoiseSuggestion(
-                          expandedNoiseSuggestion === suggestion.phrase ? null : suggestion.phrase
-                        )}
+                        onClick={() =>
+                          setExpandedNoiseSuggestion(
+                            expandedNoiseSuggestion === suggestion.phrase
+                              ? null
+                              : suggestion.phrase,
+                          )
+                        }
                       >
                         <div className="flex items-center gap-2">
                           {expandedNoiseSuggestion === suggestion.phrase ? (
@@ -566,7 +645,8 @@ export function Rules() {
                           <div>
                             <code className="text-sm">{suggestion.phrase}</code>
                             <p className="text-xs text-muted-foreground">
-                              Found in {suggestion.transactionCount} transactions
+                              Found in {suggestion.transactionCount}{' '}
+                              transactions
                             </p>
                           </div>
                         </div>
@@ -576,7 +656,9 @@ export function Rules() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              createNoiseMutation.mutate({ phrase: suggestion.phrase });
+                              createNoiseMutation.mutate({
+                                phrase: suggestion.phrase,
+                              });
                             }}
                             title="Add filter"
                           >
@@ -584,20 +666,29 @@ export function Rules() {
                           </Button>
                         </div>
                       </div>
-                      {expandedNoiseSuggestion === suggestion.phrase && suggestion.sampleDescriptions.length > 0 && (
-                        <div className="px-8 pb-2 space-y-1">
-                          <p className="text-xs text-muted-foreground font-medium">Sample matches:</p>
-                          {suggestion.sampleDescriptions.map((desc, i) => (
-                            <p key={i} className="text-xs font-mono text-muted-foreground truncate">{desc}</p>
-                          ))}
-                        </div>
-                      )}
+                      {expandedNoiseSuggestion === suggestion.phrase &&
+                        suggestion.sampleDescriptions.length > 0 && (
+                          <div className="px-8 pb-2 space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">
+                              Sample matches:
+                            </p>
+                            {suggestion.sampleDescriptions.map((desc, i) => (
+                              <p
+                                key={i}
+                                className="text-xs font-mono text-muted-foreground truncate"
+                              >
+                                {desc}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No suggestions found. Suggestions appear when phrases occur in 5+ transactions.
+                  No suggestions found. Suggestions appear when phrases occur in
+                  5+ transactions.
                 </p>
               )}
             </div>
@@ -614,7 +705,9 @@ export function Rules() {
               {noisePhrases?.map((np) => (
                 <TableRow key={np.id}>
                   <TableCell>
-                    <code className="bg-muted px-2 py-1 rounded text-sm">{np.phrase}</code>
+                    <code className="bg-muted px-2 py-1 rounded text-sm">
+                      {np.phrase}
+                    </code>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {np.sourceId ? getSourceName(np.sourceId) : 'Global'}
@@ -632,8 +725,12 @@ export function Rules() {
               ))}
               {(!noisePhrases || noisePhrases.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    No noise filters configured. Add filters to clean up transaction descriptions.
+                  <TableCell
+                    colSpan={3}
+                    className="text-center text-muted-foreground"
+                  >
+                    No noise filters configured. Add filters to clean up
+                    transaction descriptions.
                   </TableCell>
                 </TableRow>
               )}
@@ -645,7 +742,9 @@ export function Rules() {
       <ConfirmDeleteDialog
         open={deleteNoiseId !== null}
         onOpenChange={(open) => !open && setDeleteNoiseId(null)}
-        onConfirm={() => deleteNoiseId && deleteNoiseMutation.mutate({ id: deleteNoiseId })}
+        onConfirm={() =>
+          deleteNoiseId && deleteNoiseMutation.mutate({ id: deleteNoiseId })
+        }
         title="Delete Noise Filter"
         description="Are you sure you want to delete this noise filter? Cleaned descriptions will be recomputed."
         isDeleting={deleteNoiseMutation.isPending}
@@ -659,7 +758,8 @@ export function Rules() {
               Suggested Rules
             </CardTitle>
             <CardDescription>
-              Patterns detected in your uncategorized transactions. Click to create a rule.
+              Patterns detected in your uncategorized transactions. Click to
+              create a rule.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -668,9 +768,13 @@ export function Rules() {
                 <div key={index} className="border rounded">
                   <div
                     className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
-                    onClick={() => setExpandedPatternSuggestion(
-                      expandedPatternSuggestion === suggestion.pattern ? null : suggestion.pattern
-                    )}
+                    onClick={() =>
+                      setExpandedPatternSuggestion(
+                        expandedPatternSuggestion === suggestion.pattern
+                          ? null
+                          : suggestion.pattern,
+                      )
+                    }
                   >
                     <div className="flex items-center gap-3">
                       {expandedPatternSuggestion === suggestion.pattern ? (
@@ -679,14 +783,22 @@ export function Rules() {
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                       <div>
-                        <code className="bg-muted px-2 py-1 rounded text-sm">{suggestion.pattern}</code>
+                        <code className="bg-muted px-2 py-1 rounded text-sm">
+                          {suggestion.pattern}
+                        </code>
                         <p className="text-xs text-muted-foreground mt-1">
                           {suggestion.uncategorizedCount > 0 && (
-                            <span className="text-primary font-medium">{suggestion.uncategorizedCount} new</span>
+                            <span className="text-primary font-medium">
+                              {suggestion.uncategorizedCount} new
+                            </span>
                           )}
-                          {suggestion.uncategorizedCount > 0 && suggestion.categorizedCount > 0 && ', '}
+                          {suggestion.uncategorizedCount > 0 &&
+                            suggestion.categorizedCount > 0 &&
+                            ', '}
                           {suggestion.categorizedCount > 0 && (
-                            <span>{suggestion.categorizedCount} categorized</span>
+                            <span>
+                              {suggestion.categorizedCount} categorized
+                            </span>
                           )}
                         </p>
                       </div>
@@ -708,7 +820,11 @@ export function Rules() {
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setAcceptingSuggestion({ pattern: suggestion.pattern, uncategorizedCount: suggestion.uncategorizedCount, categorizedCount: suggestion.categorizedCount });
+                          setAcceptingSuggestion({
+                            pattern: suggestion.pattern,
+                            uncategorizedCount: suggestion.uncategorizedCount,
+                            categorizedCount: suggestion.categorizedCount,
+                          });
                         }}
                         title="Create rule from suggestion"
                       >
@@ -716,14 +832,22 @@ export function Rules() {
                       </Button>
                     </div>
                   </div>
-                  {expandedPatternSuggestion === suggestion.pattern && suggestion.sampleDescriptions.length > 0 && (
-                    <div className="px-10 pb-3 space-y-1 border-t bg-muted/30">
-                      <p className="text-xs text-muted-foreground font-medium pt-2">Sample matches:</p>
-                      {suggestion.sampleDescriptions.map((desc, i) => (
-                        <p key={i} className="text-xs font-mono text-muted-foreground">{desc}</p>
-                      ))}
-                    </div>
-                  )}
+                  {expandedPatternSuggestion === suggestion.pattern &&
+                    suggestion.sampleDescriptions.length > 0 && (
+                      <div className="px-10 pb-3 space-y-1 border-t bg-muted/30">
+                        <p className="text-xs text-muted-foreground font-medium pt-2">
+                          Sample matches:
+                        </p>
+                        {suggestion.sampleDescriptions.map((desc, i) => (
+                          <p
+                            key={i}
+                            className="text-xs font-mono text-muted-foreground"
+                          >
+                            {desc}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                 </div>
               ))}
             </div>
@@ -731,12 +855,15 @@ export function Rules() {
         </Card>
       )}
 
-      <Dialog open={acceptingSuggestion !== null} onOpenChange={(open) => {
-        if (!open) {
-          setAcceptingSuggestion(null);
-          setSuggestionCategoryId(null);
-        }
-      }}>
+      <Dialog
+        open={acceptingSuggestion !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAcceptingSuggestion(null);
+            setSuggestionCategoryId(null);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Rule from Suggestion</DialogTitle>
@@ -748,13 +875,19 @@ export function Rules() {
                 {acceptingSuggestion?.pattern}
               </code>
               <p className="text-xs text-muted-foreground mt-1">
-                Will categorize {acceptingSuggestion?.uncategorizedCount} new transactions
-                {acceptingSuggestion?.categorizedCount ? ` (${acceptingSuggestion.categorizedCount} already categorized)` : ''}
+                Will categorize {acceptingSuggestion?.uncategorizedCount} new
+                transactions
+                {acceptingSuggestion?.categorizedCount
+                  ? ` (${acceptingSuggestion.categorizedCount} already categorized)`
+                  : ''}
               </p>
             </div>
             <div>
               <Label>Category</Label>
-              <CategorySelectWithCreate value={suggestionCategoryId} onChange={setSuggestionCategoryId} />
+              <CategorySelectWithCreate
+                value={suggestionCategoryId}
+                onChange={setSuggestionCategoryId}
+              />
             </div>
             <Button
               onClick={handleAcceptSuggestion}

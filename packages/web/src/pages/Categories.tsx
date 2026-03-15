@@ -24,10 +24,24 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 
 const COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#6b7280',
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#eab308',
+  '#84cc16',
+  '#22c55e',
+  '#10b981',
+  '#14b8a6',
+  '#06b6d4',
+  '#0ea5e9',
+  '#3b82f6',
+  '#6366f1',
+  '#8b5cf6',
+  '#a855f7',
+  '#d946ef',
+  '#ec4899',
+  '#f43f5e',
+  '#6b7280',
 ];
 
 export function Categories() {
@@ -95,12 +109,18 @@ export function Categories() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Category' : 'Add Category'}</DialogTitle>
+              <DialogTitle>
+                {editingId ? 'Edit Category' : 'Add Category'}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Groceries" />
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Groceries"
+                />
               </div>
               <div>
                 <Label>Color</Label>
@@ -146,7 +166,10 @@ export function Categories() {
               {categories?.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>
-                    <div className="w-6 h-6 rounded-full" style={{ backgroundColor: category.color }} />
+                    <div
+                      className="w-6 h-6 rounded-full"
+                      style={{ backgroundColor: category.color }}
+                    />
                   </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell>
@@ -158,10 +181,18 @@ export function Categories() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(category)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(category)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(category.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(category.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -170,8 +201,12 @@ export function Categories() {
               ))}
               {categories?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    No categories yet. Add one to start categorizing transactions.
+                  <TableCell
+                    colSpan={4}
+                    className="text-center text-muted-foreground"
+                  >
+                    No categories yet. Add one to start categorizing
+                    transactions.
                   </TableCell>
                 </TableRow>
               )}

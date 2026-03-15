@@ -32,11 +32,11 @@ export function CategoryBreakdown({
   limit,
 }: CategoryBreakdownProps) {
   const expenses = data
-    .filter(d => !d.isTransfer && d.total < 0)
+    .filter((d) => !d.isTransfer && d.total < 0)
     .sort((a, b) => a.total - b.total);
 
   const income = data
-    .filter(d => !d.isTransfer && d.total > 0)
+    .filter((d) => !d.isTransfer && d.total > 0)
     .sort((a, b) => b.total - a.total);
 
   const expenseTotal = Math.abs(expenses.reduce((sum, d) => sum + d.total, 0));
@@ -45,10 +45,7 @@ export function CategoryBreakdown({
   const displayExpenses = limit ? expenses.slice(0, limit) : expenses;
   const displayIncome = limit ? income.slice(0, limit) : income;
 
-  const renderItem = (
-    item: CategoryItem,
-    total: number
-  ) => {
+  const renderItem = (item: CategoryItem, total: number) => {
     const absAmount = Math.abs(item.total);
     const percentage = total > 0 ? (absAmount / total) * 100 : 0;
     const monthlyAvg = item.total / 12;
@@ -63,7 +60,9 @@ export function CategoryBreakdown({
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-1">
             <span className="font-medium truncate">{item.categoryName}</span>
-            <span className="text-sm text-muted-foreground ml-2">{percentage.toFixed(1)}%</span>
+            <span className="text-sm text-muted-foreground ml-2">
+              {percentage.toFixed(1)}%
+            </span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
@@ -76,7 +75,9 @@ export function CategoryBreakdown({
           </div>
         </div>
         <div className="text-right flex-shrink-0">
-          <span className={`font-medium ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}>
+          <span
+            className={`font-medium ${item.total < 0 ? 'text-red-600' : 'text-green-600'}`}
+          >
             {formatCurrency(item.total)}
           </span>
           {showMonthlyAvg && (
@@ -119,7 +120,9 @@ export function CategoryBreakdown({
     <div className="space-y-6">
       {displayExpenses.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-3">Expenses</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">
+            Expenses
+          </h4>
           <div className="space-y-3">
             {displayExpenses.map((item) => renderItem(item, expenseTotal))}
           </div>
@@ -127,7 +130,9 @@ export function CategoryBreakdown({
       )}
       {displayIncome.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-3">Income</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">
+            Income
+          </h4>
           <div className="space-y-3">
             {displayIncome.map((item) => renderItem(item, incomeTotal))}
           </div>

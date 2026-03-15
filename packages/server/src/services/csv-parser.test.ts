@@ -5,7 +5,11 @@ describe('csv-parser', () => {
   it('should parse CSV with headers using column names', () => {
     const csv = `Date,Description,Amount
 2024-01-15,PURCHASE,-50.00`;
-    const mapping = { date: 'Date', description: 'Description', amount: 'Amount' };
+    const mapping = {
+      date: 'Date',
+      description: 'Description',
+      amount: 'Amount',
+    };
 
     const result = parseCSV(csv, 1, mapping, true);
 

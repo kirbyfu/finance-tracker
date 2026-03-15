@@ -13,18 +13,24 @@ describe('transactions router', () => {
     await db.run(sql`DELETE FROM sources`);
     await db.run(sql`DELETE FROM categories`);
 
-    const [source] = await db.insert(sources).values({
-      name: 'Test Bank',
-      type: 'bank',
-      columnMapping: JSON.stringify({
-        date: 'Date',
-        description: 'Description',
-        amount: 'Amount',
-      }),
-    }).returning();
+    const [source] = await db
+      .insert(sources)
+      .values({
+        name: 'Test Bank',
+        type: 'bank',
+        columnMapping: JSON.stringify({
+          date: 'Date',
+          description: 'Description',
+          amount: 'Amount',
+        }),
+      })
+      .returning();
     sourceId = source.id;
 
-    const [cat] = await db.insert(categories).values({ name: 'Shopping' }).returning();
+    const [cat] = await db
+      .insert(categories)
+      .values({ name: 'Shopping' })
+      .returning();
     categoryId = cat.id;
   });
 
@@ -34,7 +40,10 @@ describe('transactions router', () => {
 2024-01-15,AMAZON PURCHASE,-50.00
 2024-01-16,DEPOSIT,1000.00`;
 
-    const result = await caller.transactions.import({ sourceId, csvContent: csv });
+    const result = await caller.transactions.import({
+      sourceId,
+      csvContent: csv,
+    });
     expect(result.imported).toBe(2);
   });
 
@@ -95,16 +104,19 @@ describe('transactions router', () => {
 
   it('should import transactions from headerless CSV using column indices', async () => {
     // Create a source with hasHeaderRow=false and numeric column mapping
-    const [headerlessSource] = await db.insert(sources).values({
-      name: 'Headerless Bank',
-      type: 'bank',
-      hasHeaderRow: false,
-      columnMapping: JSON.stringify({
-        date: 1,
-        description: 2,
-        amount: 3,
-      }),
-    }).returning();
+    const [headerlessSource] = await db
+      .insert(sources)
+      .values({
+        name: 'Headerless Bank',
+        type: 'bank',
+        hasHeaderRow: false,
+        columnMapping: JSON.stringify({
+          date: 1,
+          description: 2,
+          amount: 3,
+        }),
+      })
+      .returning();
 
     const caller = appRouter.createCaller({});
     const csv = `2024-01-15,AMAZON PURCHASE,-50.00
@@ -112,15 +124,17 @@ describe('transactions router', () => {
 
     const result = await caller.transactions.import({
       sourceId: headerlessSource.id,
-      csvContent: csv
+      csvContent: csv,
     });
 
     expect(result.imported).toBe(2);
 
-    const txs = await caller.transactions.list({ sourceId: headerlessSource.id });
+    const txs = await caller.transactions.list({
+      sourceId: headerlessSource.id,
+    });
     expect(txs).toHaveLength(2);
-    expect(txs.find(t => t.description === 'AMAZON PURCHASE')).toBeDefined();
-    expect(txs.find(t => t.description === 'DEPOSIT')).toBeDefined();
+    expect(txs.find((t) => t.description === 'AMAZON PURCHASE')).toBeDefined();
+    expect(txs.find((t) => t.description === 'DEPOSIT')).toBeDefined();
   });
 
   describe('recategorizeAll', () => {
@@ -142,7 +156,10 @@ describe('transactions router', () => {
       expect(txs[0].categoryId).toBe(categoryId);
 
       // Create a new category and update the rule
-      const [newCat] = await db.insert(categories).values({ name: 'Online Shopping' }).returning();
+      const [newCat] = await db
+        .insert(categories)
+        .values({ name: 'Online Shopping' })
+        .returning();
       await db.run(sql`UPDATE rules SET category_id = ${newCat.id}`);
 
       // Recategorize
@@ -197,7 +214,10 @@ describe('transactions router', () => {
       });
 
       // Create a rule that would match
-      const [newCat] = await db.insert(categories).values({ name: 'Other' }).returning();
+      const [newCat] = await db
+        .insert(categories)
+        .values({ name: 'Other' })
+        .returning();
       await db.insert(rules).values({
         pattern: 'AMAZON',
         categoryId: newCat.id,

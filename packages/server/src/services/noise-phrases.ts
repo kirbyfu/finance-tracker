@@ -8,7 +8,7 @@ export async function list(): Promise<NoisePhrase[]> {
 
 export async function create(
   phrase: string,
-  sourceId?: number | null
+  sourceId?: number | null,
 ): Promise<NoisePhrase> {
   const normalized = phrase.toLowerCase().trim();
   const [inserted] = await db
@@ -67,7 +67,11 @@ export async function getSuggestions(): Promise<
   }
 
   // Filter to n-grams appearing in 5+ transactions
-  const candidates: { phrase: string; transactionCount: number; sampleDescriptions: string[] }[] = [];
+  const candidates: {
+    phrase: string;
+    transactionCount: number;
+    sampleDescriptions: string[];
+  }[] = [];
   for (const [phrase, txIndices] of ngramTxMap) {
     if (txIndices.size >= 5) {
       candidates.push({
@@ -85,7 +89,7 @@ export async function getSuggestions(): Promise<
 }
 
 export async function recomputeCleanedDescriptions(
-  sourceId?: number
+  sourceId?: number,
 ): Promise<{ updated: number }> {
   // Get all applicable phrases
   const phrases = await db.select().from(noisePhrases);
@@ -120,24 +124,29 @@ export async function recomputeCleanedDescriptions(
 
 export function cleanDescription(
   description: string,
-  phrases: NoisePhrase[]
+  phrases: NoisePhrase[],
 ): string {
   return applyNoiseFilters(description, phrases);
 }
 
 export async function getPhrasesForSource(
-  sourceId: number
+  sourceId: number,
 ): Promise<NoisePhrase[]> {
   // Get global + source-specific phrases
   return db
     .select()
     .from(noisePhrases)
-    .where(or(isNull(noisePhrases.sourceId), eq(noisePhrases.sourceId, sourceId)));
+    .where(
+      or(isNull(noisePhrases.sourceId), eq(noisePhrases.sourceId, sourceId)),
+    );
 }
 
 // --- Internal helpers ---
 
-function applyNoiseFilters(description: string, phrases: NoisePhrase[]): string {
+function applyNoiseFilters(
+  description: string,
+  phrases: NoisePhrase[],
+): string {
   let result = description;
 
   for (const p of phrases) {

@@ -42,7 +42,10 @@ describe('sources router', () => {
       type: 'bank',
       columnMapping: { date: 'Date', description: 'Desc', amount: 'Amount' },
     });
-    const updated = await caller.sources.update({ id: source.id, name: 'Updated' });
+    const updated = await caller.sources.update({
+      id: source.id,
+      name: 'Updated',
+    });
     expect(updated.name).toBe('Updated');
   });
 

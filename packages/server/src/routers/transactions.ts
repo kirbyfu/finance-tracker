@@ -1,10 +1,27 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { db, transactions, sources } from '../db';
-import { eq, isNull, desc, asc, and, or, gte, lte, like, SQL } from 'drizzle-orm';
+import {
+  eq,
+  isNull,
+  desc,
+  asc,
+  and,
+  or,
+  gte,
+  lte,
+  like,
+  SQL,
+} from 'drizzle-orm';
 import { parseCSV, ParsedTransaction } from '../services/csv-parser';
-import { categorizeTransaction, recategorizeAll } from '../services/categorizer';
-import { getPhrasesForSource, cleanDescription } from '../services/noise-phrases';
+import {
+  categorizeTransaction,
+  recategorizeAll,
+} from '../services/categorizer';
+import {
+  getPhrasesForSource,
+  cleanDescription,
+} from '../services/noise-phrases';
 
 function findDuplicateIndices(
   parsed: ParsedTransaction[],
@@ -67,27 +84,42 @@ export const transactionsRouter = router({
   list: publicProcedure
     .input(listInputSchema.optional())
     .query(async ({ input }) => {
-      const filters = input ?? { sort: 'date' as const, order: 'desc' as const };
+      const filters = input ?? {
+        sort: 'date' as const,
+        order: 'desc' as const,
+      };
       const conditions: SQL[] = [];
 
-      if (filters.sourceId) conditions.push(eq(transactions.sourceId, filters.sourceId));
+      if (filters.sourceId)
+        conditions.push(eq(transactions.sourceId, filters.sourceId));
       if (filters.categoryId) {
         // Use effective category: manualCategoryId takes precedence over categoryId
-        conditions.push(or(
-          eq(transactions.manualCategoryId, filters.categoryId),
-          and(isNull(transactions.manualCategoryId), eq(transactions.categoryId, filters.categoryId))
-        )!);
+        conditions.push(
+          or(
+            eq(transactions.manualCategoryId, filters.categoryId),
+            and(
+              isNull(transactions.manualCategoryId),
+              eq(transactions.categoryId, filters.categoryId),
+            ),
+          )!,
+        );
       }
       if (filters.uncategorizedOnly) {
         conditions.push(isNull(transactions.categoryId));
         conditions.push(isNull(transactions.manualCategoryId));
       }
-      if (filters.startDate) conditions.push(gte(transactions.date, filters.startDate));
-      if (filters.endDate) conditions.push(lte(transactions.date, filters.endDate));
-      if (filters.search) conditions.push(like(transactions.description, `%${filters.search.toLowerCase()}%`));
+      if (filters.startDate)
+        conditions.push(gte(transactions.date, filters.startDate));
+      if (filters.endDate)
+        conditions.push(lte(transactions.date, filters.endDate));
+      if (filters.search)
+        conditions.push(
+          like(transactions.description, `%${filters.search.toLowerCase()}%`),
+        );
 
       // Determine sort column and direction
-      const sortColumn = filters.sort === 'amount' ? transactions.amount : transactions.date;
+      const sortColumn =
+        filters.sort === 'amount' ? transactions.amount : transactions.date;
       const orderFn = filters.order === 'asc' ? asc : desc;
 
       let query = db
@@ -111,21 +143,33 @@ export const transactionsRouter = router({
     }),
 
   preview: publicProcedure
-    .input(z.object({
-      sourceId: z.number(),
-      csvContent: z.string(),
-    }))
+    .input(
+      z.object({
+        sourceId: z.number(),
+        csvContent: z.string(),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const source = await db.select().from(sources).where(eq(sources.id, input.sourceId)).get();
+      const source = await db
+        .select()
+        .from(sources)
+        .where(eq(sources.id, input.sourceId))
+        .get();
       if (!source) throw new Error('Source not found');
 
       const columnMapping = JSON.parse(source.columnMapping);
-      const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
+      const parsed = parseCSV(
+        input.csvContent,
+        input.sourceId,
+        columnMapping,
+        source.hasHeaderRow,
+      );
 
-      if (parsed.length === 0) return { parsed: [], existing: [], duplicateIndices: [] };
+      if (parsed.length === 0)
+        return { parsed: [], existing: [], duplicateIndices: [] };
 
       // Find date range of incoming transactions
-      const dates = parsed.map(t => t.date).sort();
+      const dates = parsed.map((t) => t.date).sort();
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
 
@@ -139,11 +183,13 @@ export const transactionsRouter = router({
           balance: transactions.balance,
         })
         .from(transactions)
-        .where(and(
-          eq(transactions.sourceId, input.sourceId),
-          gte(transactions.date, minDate),
-          lte(transactions.date, maxDate),
-        ))
+        .where(
+          and(
+            eq(transactions.sourceId, input.sourceId),
+            gte(transactions.date, minDate),
+            lte(transactions.date, maxDate),
+          ),
+        )
         .orderBy(asc(transactions.date));
 
       const duplicateIndices = findDuplicateIndices(parsed, existing);
@@ -152,23 +198,36 @@ export const transactionsRouter = router({
     }),
 
   import: publicProcedure
-    .input(z.object({
-      sourceId: z.number(),
-      csvContent: z.string(),
-      selectedIndices: z.array(z.number()).optional(),
-    }))
+    .input(
+      z.object({
+        sourceId: z.number(),
+        csvContent: z.string(),
+        selectedIndices: z.array(z.number()).optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const source = await db.select().from(sources).where(eq(sources.id, input.sourceId)).get();
+      const source = await db
+        .select()
+        .from(sources)
+        .where(eq(sources.id, input.sourceId))
+        .get();
       if (!source) throw new Error('Source not found');
 
       const columnMapping = JSON.parse(source.columnMapping);
-      const parsed = parseCSV(input.csvContent, input.sourceId, columnMapping, source.hasHeaderRow);
+      const parsed = parseCSV(
+        input.csvContent,
+        input.sourceId,
+        columnMapping,
+        source.hasHeaderRow,
+      );
 
       // Fetch noise phrases for this source (global + source-specific)
       const noisePhrases = await getPhrasesForSource(input.sourceId);
 
       // If selectedIndices provided, only import those
-      const selectedSet = input.selectedIndices ? new Set(input.selectedIndices) : null;
+      const selectedSet = input.selectedIndices
+        ? new Set(input.selectedIndices)
+        : null;
 
       let imported = 0;
       let uncategorized = 0;
@@ -182,11 +241,17 @@ export const transactionsRouter = router({
 
         const tx = parsed[i];
         // Categorize
-        const categoryId = await categorizeTransaction(tx.description, input.sourceId);
+        const categoryId = await categorizeTransaction(
+          tx.description,
+          input.sourceId,
+        );
         if (!categoryId) uncategorized++;
 
         // Compute cleaned description
-        const cleanedDescription = cleanDescription(tx.description, noisePhrases);
+        const cleanedDescription = cleanDescription(
+          tx.description,
+          noisePhrases,
+        );
 
         // Insert
         await db.insert(transactions).values({
@@ -206,14 +271,20 @@ export const transactionsRouter = router({
     }),
 
   update: publicProcedure
-    .input(z.object({
-      id: z.number(),
-      manualCategoryId: z.number().nullable().optional(),
-      notes: z.string().nullable().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number(),
+        manualCategoryId: z.number().nullable().optional(),
+        notes: z.string().nullable().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const { id, ...updates } = input;
-      const result = await db.update(transactions).set(updates).where(eq(transactions.id, id)).returning();
+      const result = await db
+        .update(transactions)
+        .set(updates)
+        .where(eq(transactions.id, id))
+        .returning();
       return result[0];
     }),
 
@@ -225,14 +296,19 @@ export const transactionsRouter = router({
     }),
 
   bulkUpdateCategory: publicProcedure
-    .input(z.object({
-      ids: z.array(z.number()),
-      manualCategoryId: z.number().nullable(),
-    }))
+    .input(
+      z.object({
+        ids: z.array(z.number()),
+        manualCategoryId: z.number().nullable(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const { ids, manualCategoryId } = input;
       for (const id of ids) {
-        await db.update(transactions).set({ manualCategoryId }).where(eq(transactions.id, id));
+        await db
+          .update(transactions)
+          .set({ manualCategoryId })
+          .where(eq(transactions.id, id));
       }
       return { updated: ids.length };
     }),
@@ -241,7 +317,12 @@ export const transactionsRouter = router({
     return db
       .select()
       .from(transactions)
-      .where(and(isNull(transactions.categoryId), isNull(transactions.manualCategoryId)))
+      .where(
+        and(
+          isNull(transactions.categoryId),
+          isNull(transactions.manualCategoryId),
+        ),
+      )
       .orderBy(desc(transactions.date));
   }),
 

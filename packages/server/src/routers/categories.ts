@@ -9,26 +9,34 @@ export const categoriesRouter = router({
   }),
 
   create: publicProcedure
-    .input(z.object({
-      name: z.string().min(1),
-      isTransfer: z.boolean().optional().default(false),
-      color: z.string().optional().default('#6b7280'),
-    }))
+    .input(
+      z.object({
+        name: z.string().min(1),
+        isTransfer: z.boolean().optional().default(false),
+        color: z.string().optional().default('#6b7280'),
+      }),
+    )
     .mutation(async ({ input }) => {
       const result = await db.insert(categories).values(input).returning();
       return result[0];
     }),
 
   update: publicProcedure
-    .input(z.object({
-      id: z.number(),
-      name: z.string().min(1).optional(),
-      isTransfer: z.boolean().optional(),
-      color: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        isTransfer: z.boolean().optional(),
+        color: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const { id, ...updates } = input;
-      const result = await db.update(categories).set(updates).where(eq(categories.id, id)).returning();
+      const result = await db
+        .update(categories)
+        .set(updates)
+        .where(eq(categories.id, id))
+        .returning();
       return result[0];
     }),
 

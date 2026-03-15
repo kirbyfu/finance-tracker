@@ -3,7 +3,7 @@ import { db, rules, transactions } from '../db';
 
 export async function categorizeTransaction(
   description: string,
-  sourceId: number
+  sourceId: number,
 ): Promise<number | null> {
   const allRules = await db.select().from(rules).orderBy(asc(rules.priority));
 
@@ -34,7 +34,10 @@ export async function recategorizeAll(): Promise<{ updated: number }> {
   for (const tx of uncategorized) {
     const categoryId = await categorizeTransaction(tx.description, tx.sourceId);
     if (categoryId !== tx.categoryId) {
-      await db.update(transactions).set({ categoryId }).where(eq(transactions.id, tx.id));
+      await db
+        .update(transactions)
+        .set({ categoryId })
+        .where(eq(transactions.id, tx.id));
       updated++;
     }
   }

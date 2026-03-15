@@ -10,7 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -19,7 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, Eye, ArrowLeft } from 'lucide-react';
+import {
+  Upload,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Eye,
+  ArrowLeft,
+} from 'lucide-react';
 
 interface ParsedTx {
   date: string;
@@ -66,12 +80,15 @@ export function Import() {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [preview, setPreview] = useState<PreviewData | null>(null);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+    new Set(),
+  );
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: sources, isLoading: sourcesLoading } = trpc.sources.list.useQuery();
+  const { data: sources, isLoading: sourcesLoading } =
+    trpc.sources.list.useQuery();
   const previewMutation = trpc.transactions.preview.useMutation();
   const importMutation = trpc.transactions.import.useMutation();
 
@@ -150,7 +167,7 @@ export function Import() {
   }
 
   function toggleIndex(index: number) {
-    setSelectedIndices(prev => {
+    setSelectedIndices((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);
       else next.add(index);
@@ -176,8 +193,13 @@ export function Import() {
     fileInputRef.current?.click();
   }
 
-  const selectedSource = sources?.find(s => s.id === parseInt(selectedSourceId));
-  const dupSet = useMemo(() => preview ? new Set(preview.duplicateIndices) : new Set<number>(), [preview]);
+  const selectedSource = sources?.find(
+    (s) => s.id === parseInt(selectedSourceId),
+  );
+  const dupSet = useMemo(
+    () => (preview ? new Set(preview.duplicateIndices) : new Set<number>()),
+    [preview],
+  );
 
   // If we have a preview, show the two-column dedup view
   if (preview) {
@@ -191,9 +213,14 @@ export function Import() {
           <div>
             <h1 className="text-2xl font-bold">Review Import</h1>
             <p className="text-muted-foreground text-sm">
-              {preview.parsed.length} transactions parsed from {fileName || 'CSV'}
+              {preview.parsed.length} transactions parsed from{' '}
+              {fileName || 'CSV'}
               {preview.duplicateIndices.length > 0 && (
-                <> &mdash; {preview.duplicateIndices.length} likely duplicate{preview.duplicateIndices.length !== 1 ? 's' : ''} detected</>
+                <>
+                  {' '}
+                  &mdash; {preview.duplicateIndices.length} likely duplicate
+                  {preview.duplicateIndices.length !== 1 ? 's' : ''} detected
+                </>
               )}
             </p>
           </div>
@@ -210,9 +237,13 @@ export function Import() {
           {hasOverlap && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Existing Transactions</CardTitle>
+                <CardTitle className="text-base">
+                  Existing Transactions
+                </CardTitle>
                 <CardDescription>
-                  {preview.existing.length} transaction{preview.existing.length !== 1 ? 's' : ''} already in database for the overlap period
+                  {preview.existing.length} transaction
+                  {preview.existing.length !== 1 ? 's' : ''} already in database
+                  for the overlap period
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -222,15 +253,23 @@ export function Import() {
                       <TableRow>
                         <TableHead className="w-24">Date</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead className="text-right w-24">Amount</TableHead>
+                        <TableHead className="text-right w-24">
+                          Amount
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {preview.existing.map((tx) => (
                         <TableRow key={tx.id}>
-                          <TableCell className="text-xs">{formatDate(tx.date)}</TableCell>
-                          <TableCell className="text-xs truncate max-w-[200px]">{tx.description}</TableCell>
-                          <TableCell className={`text-xs text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <TableCell className="text-xs">
+                            {formatDate(tx.date)}
+                          </TableCell>
+                          <TableCell className="text-xs truncate max-w-[200px]">
+                            {tx.description}
+                          </TableCell>
+                          <TableCell
+                            className={`text-xs text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}
+                          >
                             {formatAmount(tx.amount)}
                           </TableCell>
                         </TableRow>
@@ -246,14 +285,21 @@ export function Import() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Incoming Transactions</CardTitle>
+                  <CardTitle className="text-base">
+                    Incoming Transactions
+                  </CardTitle>
                   <CardDescription>
-                    {selectedIndices.size} of {preview.parsed.length} selected for import
+                    {selectedIndices.size} of {preview.parsed.length} selected
+                    for import
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAll}>All</Button>
-                  <Button variant="outline" size="sm" onClick={deselectAll}>None</Button>
+                  <Button variant="outline" size="sm" onClick={selectAll}>
+                    All
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={deselectAll}>
+                    None
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -286,11 +332,20 @@ export function Import() {
                           <TableCell className="text-xs">
                             {formatDate(tx.date)}
                             {isDup && (
-                              <span className="ml-1 text-amber-500 text-[10px] font-medium" title="Likely duplicate">dup</span>
+                              <span
+                                className="ml-1 text-amber-500 text-[10px] font-medium"
+                                title="Likely duplicate"
+                              >
+                                dup
+                              </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs truncate max-w-[200px]">{tx.description}</TableCell>
-                          <TableCell className={`text-xs text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <TableCell className="text-xs truncate max-w-[200px]">
+                            {tx.description}
+                          </TableCell>
+                          <TableCell
+                            className={`text-xs text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}
+                          >
                             {formatAmount(tx.amount)}
                           </TableCell>
                         </TableRow>
@@ -304,7 +359,9 @@ export function Import() {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={handleBack}>Cancel</Button>
+          <Button variant="outline" onClick={handleBack}>
+            Cancel
+          </Button>
           <Button
             onClick={handleImport}
             disabled={selectedIndices.size === 0 || isImporting}
@@ -317,7 +374,8 @@ export function Import() {
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Import {selectedIndices.size} Transaction{selectedIndices.size !== 1 ? 's' : ''}
+                Import {selectedIndices.size} Transaction
+                {selectedIndices.size !== 1 ? 's' : ''}
               </>
             )}
           </Button>
@@ -331,7 +389,8 @@ export function Import() {
       <div>
         <h1 className="text-2xl font-bold">Import Transactions</h1>
         <p className="text-muted-foreground mt-1">
-          Upload a CSV file from your bank or credit card to import transactions.
+          Upload a CSV file from your bank or credit card to import
+          transactions.
         </p>
       </div>
 
@@ -346,14 +405,22 @@ export function Import() {
           <CardContent className="space-y-4">
             <div>
               <Label>Source</Label>
-              <Select value={selectedSourceId} onValueChange={(v) => { setSelectedSourceId(v); setPreview(null); setResult(null); }}>
+              <Select
+                value={selectedSourceId}
+                onValueChange={(v) => {
+                  setSelectedSourceId(v);
+                  setPreview(null);
+                  setResult(null);
+                }}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select a source..." />
                 </SelectTrigger>
                 <SelectContent>
                   {sources?.map((source) => (
                     <SelectItem key={source.id} value={source.id.toString()}>
-                      {source.name} ({source.type === 'bank' ? 'Bank' : 'Credit Card'})
+                      {source.name} (
+                      {source.type === 'bank' ? 'Bank' : 'Credit Card'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -372,7 +439,9 @@ export function Import() {
                   {Object.entries(JSON.parse(selectedSource.columnMapping))
                     .filter(([_, v]) => v)
                     .map(([key, value]) => (
-                      <li key={key}>{key}: {value as string}</li>
+                      <li key={key}>
+                        {key}: {value as string}
+                      </li>
                     ))}
                 </ul>
               </div>
@@ -457,7 +526,8 @@ export function Import() {
                   <div>
                     <p className="font-medium">Import Successful</p>
                     <p className="text-sm mt-1">
-                      {result.imported} transaction{result.imported !== 1 ? 's' : ''} imported
+                      {result.imported} transaction
+                      {result.imported !== 1 ? 's' : ''} imported
                     </p>
                   </div>
                 </div>
@@ -495,7 +565,9 @@ export function Import() {
               <div className="text-center py-8 text-muted-foreground">
                 <Upload className="h-12 w-12 mx-auto mb-3 opacity-20" />
                 <p>No import performed yet</p>
-                <p className="text-sm mt-1">Upload a CSV file to see results here</p>
+                <p className="text-sm mt-1">
+                  Upload a CSV file to see results here
+                </p>
               </div>
             )}
           </CardContent>
