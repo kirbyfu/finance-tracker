@@ -15,9 +15,11 @@ import { Switch } from '@/components/ui/switch';
 import { trpc } from '@/lib/trpc';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
+  Copy,
   Trash2,
   Wand2,
 } from 'lucide-react';
@@ -69,6 +71,44 @@ function formatAmountNum(amount: number) {
   return amount < 0 ? `-$${formatted}` : `$${formatted}`;
 }
 
+function CopyableCell({
+  text,
+  children,
+  className = '',
+  onClick,
+}: {
+  text: string;
+  children: React.ReactNode;
+  className?: string;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  return (
+    <div className={`group/cell relative overflow-hidden ${className}`} onClick={onClick}>
+      {children}
+      <button
+        className="absolute right-0 top-1/2 -translate-y-1/2 p-0.5 rounded opacity-0 group-hover/cell:opacity-100 bg-background/80 text-muted-foreground hover:text-foreground transition-opacity"
+        onClick={handleCopy}
+        title="Copy"
+      >
+        {copied ? (
+          <Check className="h-3 w-3 text-green-600" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </button>
+    </div>
+  );
+}
+
 const Row = memo(function Row({
   tx,
   index,
@@ -115,15 +155,21 @@ const Row = memo(function Row({
           className="w-4 h-4"
         />
       </div>
-      <div className="px-3">{formatDateStr(tx.date)}</div>
-      <div className="px-3 truncate">{tx.description}</div>
-      <div
-        className={`px-3 text-right ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}
+      <CopyableCell text={formatDateStr(tx.date)} className="px-3 flex items-center">
+        {formatDateStr(tx.date)}
+      </CopyableCell>
+      <CopyableCell text={tx.description} className="px-3 flex items-center min-w-0">
+        <span className="truncate">{tx.description}</span>
+      </CopyableCell>
+      <CopyableCell
+        text={formatAmountNum(tx.amount)}
+        className={`px-3 flex items-center justify-end ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}
       >
         {formatAmountNum(tx.amount)}
-      </div>
-      <div
-        className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate flex items-center gap-2"
+      </CopyableCell>
+      <CopyableCell
+        text={categoryName}
+        className="px-3 text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-2 min-w-0"
         onClick={(e) => {
           e.stopPropagation();
           onCategoryClick(tx.id);
@@ -135,20 +181,25 @@ const Row = memo(function Row({
             style={{ backgroundColor: categoryColor }}
           />
         )}
-        {categoryName}
-      </div>
-      <div className="px-3 text-muted-foreground truncate">{sourceName}</div>
-      <div
-        className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate"
+        <span className="truncate">{categoryName}</span>
+      </CopyableCell>
+      <CopyableCell text={sourceName} className="px-3 text-muted-foreground flex items-center min-w-0">
+        <span className="truncate">{sourceName}</span>
+      </CopyableCell>
+      <CopyableCell
+        text={tx.notes || ''}
+        className="px-3 text-muted-foreground hover:text-foreground cursor-pointer flex items-center min-w-0"
         onClick={(e) => {
           e.stopPropagation();
           onNoteClick(tx.id, tx.notes);
         }}
       >
-        {tx.notes || (
-          <span className="text-muted-foreground/50">Add note...</span>
-        )}
-      </div>
+        <span className="truncate">
+          {tx.notes || (
+            <span className="text-muted-foreground/50">Add note...</span>
+          )}
+        </span>
+      </CopyableCell>
       <div
         className="px-3 flex items-center gap-1"
         onClick={(e) => e.stopPropagation()}
