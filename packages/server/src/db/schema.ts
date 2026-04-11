@@ -14,6 +14,7 @@ export const sources = sqliteTable('sources', {
   hasHeaderRow: integer('has_header_row', { mode: 'boolean' })
     .notNull()
     .default(true),
+  ownershipShare: real('ownership_share').notNull().default(1.0),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date(),
   ),
@@ -46,6 +47,7 @@ export const transactions = sqliteTable('transactions', {
     () => categories.id,
   ),
   notes: text('notes'),
+  ownershipShare: real('ownership_share'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date(),
   ),
