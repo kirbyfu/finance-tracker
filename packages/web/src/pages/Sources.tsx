@@ -51,6 +51,7 @@ export function Sources() {
     amount: '',
   });
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [ownershipShare, setOwnershipShare] = useState(100);
 
   const utils = trpc.useUtils();
   const { data: sources, isLoading } = trpc.sources.list.useQuery();
@@ -78,6 +79,7 @@ export function Sources() {
     setAmountType('single');
     setHasHeaderRow(true);
     setMapping({ date: '', description: '', amount: '' });
+    setOwnershipShare(100);
   }
 
   function handleEdit(
@@ -91,6 +93,7 @@ export function Sources() {
     setMapping(parsed);
     setAmountType(parsed.amount ? 'single' : 'split');
     setHasHeaderRow(source.hasHeaderRow ?? true);
+    setOwnershipShare(Math.round((source.ownershipShare ?? 1) * 100));
     setIsOpen(true);
   }
 
@@ -128,6 +131,7 @@ export function Sources() {
         type,
         hasHeaderRow,
         columnMapping: processedMapping as ColumnMapping,
+        ownershipShare: ownershipShare / 100,
       });
     } else {
       createMutation.mutate({
@@ -135,6 +139,7 @@ export function Sources() {
         type,
         hasHeaderRow,
         columnMapping: processedMapping as ColumnMapping,
+        ownershipShare: ownershipShare / 100,
       });
     }
   }
@@ -206,6 +211,22 @@ export function Sources() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <Label htmlFor="hasHeaderRow">CSV has header row</Label>
+              </div>
+              <div>
+                <Label>Ownership Share (%)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={ownershipShare}
+                  onChange={(e) =>
+                    setOwnershipShare(parseInt(e.target.value) || 0)
+                  }
+                  placeholder="100"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your share of transactions from this source. 100% for personal accounts, 50% for a 50/50 joint account.
+                </p>
               </div>
               {!hasHeaderRow && (
                 <p className="text-sm text-muted-foreground">
@@ -330,6 +351,7 @@ export function Sources() {
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Column Mapping</TableHead>
+                <TableHead>Ownership</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -345,6 +367,9 @@ export function Sources() {
                       .filter(([, v]) => v)
                       .map(([k, v]) => `${k}: ${v}`)
                       .join(', ')}
+                  </TableCell>
+                  <TableCell>
+                    {Math.round((source.ownershipShare ?? 1) * 100)}%
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -369,7 +394,7 @@ export function Sources() {
               {sources?.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="text-center text-muted-foreground"
                   >
                     No sources configured. Add one to get started.
