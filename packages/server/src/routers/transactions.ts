@@ -262,6 +262,7 @@ export const transactionsRouter = router({
           balance: tx.balance,
           categoryId,
           cleanedDescription,
+          ownershipShare: source.ownershipShare,
         });
 
         imported++;
@@ -276,6 +277,7 @@ export const transactionsRouter = router({
         id: z.number(),
         manualCategoryId: z.number().nullable().optional(),
         notes: z.string().nullable().optional(),
+        ownershipShare: z.number().min(0).max(1).nullable().optional(),
       }),
     )
     .mutation(async ({ input }) => {
