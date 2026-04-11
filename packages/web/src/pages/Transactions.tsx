@@ -41,9 +41,10 @@ interface Transaction {
   manualCategoryId: number | null;
   sourceId: number;
   notes: string | null;
+  ownershipShare: number | null;
 }
 
-const GRID_COLS = '40px 120px 1fr 100px 155px 120px 180px 80px';
+const GRID_COLS = '40px 120px 1fr 100px 70px 155px 120px 180px 80px';
 
 const MONTHS = [
   'Jan',
@@ -82,6 +83,7 @@ const Row = memo(function Row({
   onNoteClick,
   onDelete,
   onCreateRule,
+  onShareClick,
 }: {
   tx: Transaction;
   index: number;
@@ -95,6 +97,7 @@ const Row = memo(function Row({
   onNoteClick: (id: number, currentNote: string | null) => void;
   onDelete: (id: number) => void;
   onCreateRule: (tx: Transaction) => void;
+  onShareClick: (id: number, currentShare: number | null) => void;
 }) {
   const effectiveCategoryId = tx.manualCategoryId ?? tx.categoryId;
 
@@ -121,6 +124,17 @@ const Row = memo(function Row({
         className={`px-3 text-right select-text ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}
       >
         {formatAmountNum(tx.amount)}
+      </div>
+      <div
+        className="px-3 text-right text-muted-foreground hover:text-foreground cursor-pointer select-text"
+        onClick={(e) => {
+          e.stopPropagation();
+          onShareClick(tx.id, tx.ownershipShare);
+        }}
+      >
+        {tx.ownershipShare !== null
+          ? `${Math.round(tx.ownershipShare * 100)}%`
+          : ''}
       </div>
       <div
         className="px-3 text-muted-foreground hover:text-foreground cursor-pointer truncate flex items-center gap-2 select-text"
@@ -179,6 +193,8 @@ export function Transactions() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteValue, setNoteValue] = useState('');
+  const [editingShareId, setEditingShareId] = useState<number | null>(null);
+  const [shareValue, setShareValue] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [ruleTransaction, setRuleTransaction] = useState<Transaction | null>(
     null,
@@ -416,6 +432,28 @@ export function Transactions() {
     [updateMutation],
   );
 
+  const handleShareClick = useCallback(
+    (id: number, currentShare: number | null) => {
+      setEditingShareId(id);
+      setShareValue(
+        currentShare !== null ? Math.round(currentShare * 100).toString() : '',
+      );
+    },
+    [],
+  );
+
+  const handleSaveShare = useCallback(
+    (id: number, value: string) => {
+      const parsed = parseInt(value);
+      const ownershipShare =
+        value === '' ? null : Math.min(100, Math.max(0, parsed)) / 100;
+      updateMutation.mutate({ id, ownershipShare });
+      setEditingShareId(null);
+      setShareValue('');
+    },
+    [updateMutation],
+  );
+
   const handleDelete = useCallback((id: number) => {
     setDeleteId(id);
   }, []);
@@ -628,6 +666,9 @@ export function Transactions() {
                   {filters.sort === 'amount' &&
                     (filters.order === 'asc' ? '▲' : '▼')}
                 </div>
+                <div className="px-3 h-12 flex items-center justify-end">
+                  Share
+                </div>
                 <div className="px-3 h-12 flex items-center">Category</div>
                 <div className="px-3 h-12 flex items-center">Source</div>
                 <div className="px-3 h-12 flex items-center">Notes</div>
@@ -676,6 +717,7 @@ export function Transactions() {
                           onNoteClick={handleNoteClick}
                           onDelete={handleDelete}
                           onCreateRule={handleCreateRule}
+                          onShareClick={handleShareClick}
                         />
                       </div>
                     );
@@ -886,6 +928,56 @@ export function Transactions() {
               <button
                 className="flex-1 px-3 py-2 text-sm border rounded hover:bg-muted"
                 onClick={() => setEditingNoteId(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Edit Modal */}
+      {editingShareId !== null && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setEditingShareId(null)}
+        >
+          <div
+            className="bg-background rounded-lg p-4 shadow-lg min-w-80"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-medium mb-3">Edit Ownership Share</h3>
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="number"
+                className="w-full h-10 border rounded px-3"
+                value={shareValue}
+                onChange={(e) => setShareValue(e.target.value)}
+                placeholder="Empty = inherit from source"
+                min={0}
+                max={100}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter')
+                    handleSaveShare(editingShareId, shareValue);
+                  if (e.key === 'Escape') setEditingShareId(null);
+                }}
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Leave empty to use the source default.
+            </p>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 px-3 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                onClick={() => handleSaveShare(editingShareId, shareValue)}
+              >
+                Save
+              </button>
+              <button
+                className="flex-1 px-3 py-2 text-sm border rounded hover:bg-muted"
+                onClick={() => setEditingShareId(null)}
               >
                 Cancel
               </button>
