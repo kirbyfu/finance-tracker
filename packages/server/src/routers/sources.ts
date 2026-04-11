@@ -29,6 +29,7 @@ export const sourcesRouter = router({
         type: z.enum(['bank', 'credit_card']),
         hasHeaderRow: z.boolean().default(true),
         columnMapping: columnMappingSchema,
+        ownershipShare: z.number().min(0).max(1).default(1.0),
       }),
     )
     .mutation(async ({ input }) => {
@@ -39,6 +40,7 @@ export const sourcesRouter = router({
           type: input.type,
           hasHeaderRow: input.hasHeaderRow,
           columnMapping: JSON.stringify(input.columnMapping),
+          ownershipShare: input.ownershipShare,
         })
         .returning();
       return result[0];
@@ -52,6 +54,7 @@ export const sourcesRouter = router({
         type: z.enum(['bank', 'credit_card']).optional(),
         hasHeaderRow: z.boolean().optional(),
         columnMapping: columnMappingSchema.optional(),
+        ownershipShare: z.number().min(0).max(1).optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -63,6 +66,8 @@ export const sourcesRouter = router({
         values.hasHeaderRow = updates.hasHeaderRow;
       if (updates.columnMapping)
         values.columnMapping = JSON.stringify(updates.columnMapping);
+      if (updates.ownershipShare !== undefined)
+        values.ownershipShare = updates.ownershipShare;
 
       const result = await db
         .update(sources)
