@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { db, transactions, categories } from '../db';
-import { and, gte, lte } from 'drizzle-orm';
+import { db, transactions, categories, sources } from '../db';
+import { and, gte, lte, eq } from 'drizzle-orm';
 
 export interface CategorySummary {
   categoryId: number | null;
@@ -147,8 +147,16 @@ async function getBreakdown(
   const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
 
   const txs = await db
-    .select()
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      categoryId: transactions.categoryId,
+      manualCategoryId: transactions.manualCategoryId,
+      ownershipShare: transactions.ownershipShare,
+      sourceOwnershipShare: sources.ownershipShare,
+    })
     .from(transactions)
+    .innerJoin(sources, eq(transactions.sourceId, sources.id))
     .where(
       and(gte(transactions.date, startDate), lte(transactions.date, endDate)),
     );
@@ -157,8 +165,13 @@ async function getBreakdown(
 
   for (const tx of txs) {
     const catId = tx.manualCategoryId ?? tx.categoryId;
+    const cat = catId ? categoryMap.get(catId) : null;
+    const isTransfer = cat?.isTransfer ?? false;
+    const share = isTransfer
+      ? 1.0
+      : (tx.ownershipShare ?? tx.sourceOwnershipShare);
     const current = totals.get(catId) || 0;
-    totals.set(catId, current + tx.amount);
+    totals.set(catId, current + tx.amount * share);
   }
 
   const result: CategorySummary[] = [];
@@ -172,7 +185,7 @@ async function getBreakdown(
     });
   }
 
-  return result.sort((a, b) => a.total - b.total); // Most negative (expenses) first
+  return result.sort((a, b) => a.total - b.total);
 }
 
 function getLastDayOfMonth(year: number, month: number): string {
