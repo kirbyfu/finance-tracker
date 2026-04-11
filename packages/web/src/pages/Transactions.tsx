@@ -132,7 +132,7 @@ const Row = memo(function Row({
           onShareClick(tx.id, tx.ownershipShare);
         }}
       >
-        {tx.ownershipShare !== null
+        {tx.ownershipShare !== null && tx.ownershipShare !== 1.0
           ? `${Math.round(tx.ownershipShare * 100)}%`
           : ''}
       </div>
@@ -446,7 +446,9 @@ export function Transactions() {
     (id: number, value: string) => {
       const parsed = parseInt(value);
       const ownershipShare =
-        value === '' ? null : Math.min(100, Math.max(0, parsed)) / 100;
+        value === '' || isNaN(parsed)
+          ? null
+          : Math.min(100, Math.max(0, parsed)) / 100;
       updateMutation.mutate({ id, ownershipShare });
       setEditingShareId(null);
       setShareValue('');
